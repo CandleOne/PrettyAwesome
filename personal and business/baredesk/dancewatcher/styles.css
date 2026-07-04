@@ -1,0 +1,212 @@
+body {
+    background-color: #0b080c;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px
+} 
+
+h1 {
+    color: #ffffff;
+    font-size: 2.5em;
+    text-align: center;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px
+}
+
+h2 {
+    color: #ffffff;
+    font-size: 2em;
+    text-align: center;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px
+}
+
+h3 {
+    color: #ffffff;
+    font-size: 1.5em;
+    text-align: center;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px
+}
+
+p {
+    color: #ffffff;
+    font-size: 1.2em;
+    text-align: center;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px
+}
+
+.header {
+    background-image: url('stcimages/dazee_ruoqa_website_image_2x_mrtj_standard.jpeg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    background-size: 100% 100%;
+    background-color: #071f39ac;
+    background-blend-mode: overlay;
+    text-align: center;
+    margin-left: 0%;
+    margin-right: 0%;
+}
+
+/* Navbar and hamburger menu styles */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+    z-index: 1000;
+}
+
+/* Login button style */
+.login-btn {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 220, 200, 0.9);
+    border-radius: 50%;
+    border: none;
+    color: #0b080c;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(255, 220, 200, 0.5);
+}
+
+.login-btn:hover {
+    background-color: rgba(255, 220, 200, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(255, 220, 200, 0.7);
+}
+
+.hamburger-menu {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 220, 200, 0.9);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 1001;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(255, 220, 200, 0.5);
+}
+
+.hamburger-menu:hover {
+    background-color: rgba(255, 220, 200, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(255, 220, 200, 0.7);
+}
+
+.bar {
+    width: 30px;
+    height: 3px;
+    background-color: #0b080c;
+    margin: 3px 0;
+    transition: all 0.3s ease;
+}
+
+.hamburger-menu.active .bar:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-menu.active .bar:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-menu.active .bar:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+}
+
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 0;
+    background-color: rgba(0, 0, 0, 0.95);
+    overflow: hidden;
+    transition: height 0.5s ease;
+    z-index: 999;
+}
+
+.menu-overlay.active {
+    height: 100%;
+}
+
+.menu-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.navlist {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+}
+
+.navlist li {
+    margin: 30px 0;
+}
+
+.navbtn {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 24px;
+    padding: 10px 20px;
+    display: inline-block;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.navbtn:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 50%;
+    background-color: #ffffff;
+    transition: all 0.3s ease;
+}
+
+.navbtn:hover {
+    color: rgba(255, 220, 200, 1);
+}
+
+.navbtn:hover:after {
+    width: 100%;
+    left: 0;
+}
+
+.logo {
+    width: 80%;
+    height: auto;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px
+}
+
+.main {
+    margin-top: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    margin-left: 10px
+}

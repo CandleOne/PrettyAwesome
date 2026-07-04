@@ -1,0 +1,11 @@
+{
+    "token": "MTM1NzEwODc0NjQxMjg4NDE0OQ.G3vt5y.Idy2QRbfW0wx0ahQN1FSiKyHffvUdQgSilTHvU",
+    "ngrok_url_file": "ngrok_url.txt",
+    "check_interval": 60,
+    "status_check_interval": 30,
+    "admin_ids": [
+        1247405348126720062
+    ],
+    "subscribed_users": [],
+    "user_preferences": {}
+}

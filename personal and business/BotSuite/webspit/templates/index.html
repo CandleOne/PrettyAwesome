@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: rgb(40, 39, 39);
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden; /* Prevent body scrolling */
+        }
+        header {
+            width: 100%;
+            background-color: rgb(30, 30, 30);
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 10; /* Ensure it stays on top */
+            padding: 10px 0;
+        }
+        footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: rgb(30, 30, 30);
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            z-index: 10; /* Ensure it stays on top */
+        }
+        nav {
+            margin-top: 10px;
+        }
+        nav a {
+            margin: 0 15px;
+            color: white;
+            text-decoration: none;
+        }
+        nav a.active {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        main {
+            flex-grow: 1;
+            width: 100%;
+            padding-top: 100px; /* Give space for fixed header */
+            padding-bottom: 100px; /* Give space for fixed footer */
+            overflow: hidden; /* Prevent overflow */
+            box-sizing: border-box;
+        }
+        iframe {
+            width: 100%;
+            height: calc(100vh - 200px); /* Adjust height to fit between header and footer */
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <header id="header">
+        <h1>Welcome To Your Webservice!</h1>
+        <nav id="navbar">
+            <a href="#" id="home-link" onclick="loadContent('home')" class="active">Home</a>
+            <a href="#" id="stickman-link" onclick="loadContent('stickman')">Stickman Game</a>
+            <a href="#" id="about-link" onclick="loadContent('about')">About</a>
+            <a href="#" id="contact-link" onclick="loadContent('contact')">Contact</a>
+        </nav>
+    </header>
+    <main id="main-content">
+        <h1>Welcome to the Home Page</h1>
+        <p>Click a link in the navigation to load content.</p>
+    </main>
+    <footer id="footer">
+        <h1>This is The Footer</h1>
+        <p>Its a nice footer in my opinion.</p>
+    </footer>
+
+    <script>
+        function loadContent(page) {
+            const mainContent = document.getElementById('main-content');
+            const header = document.getElementById('header');
+            const footer = document.getElementById('footer');
+            const navbar = document.getElementById('navbar');
+            
+            // Remove the "active" class from all links
+            document.querySelectorAll('nav a').forEach(link => link.classList.remove('active'));
+
+            // Set the active class to the clicked link
+            const activeLink = document.getElementById(`${page}-link`);
+            activeLink.classList.add('active');
+            
+            if (page === 'stickman') {
+                // Hide the header and footer for the Stickman Game page
+                header.style.display = 'block';
+                footer.style.display = 'none';
+
+                // Update main content with iframe for Stickman Game
+                mainContent.innerHTML = `
+                    <h1>Stickman Destruction</h1>
+                    <iframe src="https://www.onlinegames.io/games/2021/unity3/stickman-destruction/index.html"></iframe>
+                `;
+            } else if (page === 'home') {
+                // Show header and footer for the Home page
+                header.style.display = 'block';
+                footer.style.display = 'block';
+
+                // Update main content to display Home page content
+                mainContent.innerHTML = `
+                    <h1>Welcome to the Home Page</h1>
+                    <p>Click a link in the navigation to load content.</p>
+                `;
+            } else {
+                // Ensure header and footer are visible for other pages
+                header.style.display = 'block';
+                footer.style.display = 'block';
+
+                if (page === 'about') {
+                    mainContent.innerHTML = `
+                        <h1>About</h1>
+                        <p>This is a description of the webservice.</p>
+                    `;
+                } else if (page === 'contact') {
+                    mainContent.innerHTML = `
+                        <h1>Contact</h1>
+                        <p>Get in touch with us at contact@webservice.com.</p>
+                    `;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <div class="header">
+            <div class="navbar">
+                <button class="login-btn" id="login-btn">Login</button>
+                <div class="hamburger-menu" id="hamburger-btn">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+                <div class="menu-overlay" id="menu-overlay">
+                    <div class="menu-content">
+                        <ul class="navlist">
+                            <li><a class="navbtn" href="#">Home</a></li>
+                            <li><a class="navbtn" href="#">About</a></li>
+                            <li><a class="navbtn" href="#">Services</a></li>
+                            <li><a class="navbtn" href="#">Contact</a></li>
+                            <li><a class="navbtn" href="#">Login</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <img src="stcimages/tapelogo1.png" alt="Logo" class="logo">
+            <p>Love and Music.</p>
+        </div>
+        <div class="main">
+            <h2>Content</h2>
+            <p>This is where the main content goes.</p>
+        </div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const hamburgerBtn = document.getElementById('hamburger-btn');
+                const menuOverlay = document.getElementById('menu-overlay');
+                
+                hamburgerBtn.addEventListener('click', function() {
+                    hamburgerBtn.classList.toggle('active');
+                    menuOverlay.classList.toggle('active');
+                });
+            });
+        </script>
+    </body>
+</html>
