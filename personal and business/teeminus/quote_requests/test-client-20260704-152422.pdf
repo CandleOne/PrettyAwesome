@@ -1,0 +1,103 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 815 >>
+stream
+BT
+/F1 10 Tf
+72 760 Td
+(Tee-Minus Quote Request) Tj
+T*
+() Tj
+T*
+(Submitted: 2026-07-04T00:00:00Z) Tj
+T*
+() Tj
+T*
+(Client Information) Tj
+T*
+(Name: Test Client) Tj
+T*
+(Email: test@example.com) Tj
+T*
+(Phone: 555-0100) Tj
+T*
+() Tj
+T*
+(Design Information) Tj
+T*
+(File: sample.pdf) Tj
+T*
+(Shirt Color: Black) Tj
+T*
+(Placement: Front Chest) Tj
+T*
+(Vinyl Colors: White) Tj
+T*
+(Color Complexity: single) Tj
+T*
+(Color Mapping: Not provided) Tj
+T*
+(Print Dimensions: 10 x 8) Tj
+T*
+(Total Pieces: 6) Tj
+T*
+(Sizes:) Tj
+T*
+(M: 1) Tj
+T*
+(S: 3) Tj
+T*
+(XS: 2) Tj
+T*
+() Tj
+T*
+(Logistics) Tj
+T*
+(Need-By Date: 2026-07-15) Tj
+T*
+(Rush Order: No) Tj
+T*
+(Delivery: pickup) Tj
+T*
+(Shipping Address: Not provided) Tj
+T*
+() Tj
+T*
+(Additional Context) Tj
+T*
+(Test submission) Tj
+T*
+() Tj
+T*
+(Proof Approval) Tj
+T*
+(Acknowledged: Yes) Tj
+ET
+
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001107 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1177
+%%EOF

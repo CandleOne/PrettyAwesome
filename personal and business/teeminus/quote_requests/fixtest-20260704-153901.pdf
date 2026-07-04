@@ -1,0 +1,101 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 1312 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 72 760 Tm
+(Tee-Minus Quote Request) Tj
+1 0 0 1 72 746 Tm
+() Tj
+1 0 0 1 72 732 Tm
+(Submitted: 2026-07-04T12:00:00Z) Tj
+1 0 0 1 72 718 Tm
+() Tj
+1 0 0 1 72 704 Tm
+(Client Information) Tj
+1 0 0 1 72 690 Tm
+(Name: FixTest) Tj
+1 0 0 1 72 676 Tm
+(Email: test@example.com) Tj
+1 0 0 1 72 662 Tm
+(Phone: 555-0100) Tj
+1 0 0 1 72 648 Tm
+() Tj
+1 0 0 1 72 634 Tm
+(Design Information) Tj
+1 0 0 1 72 620 Tm
+(File: art.png) Tj
+1 0 0 1 72 606 Tm
+(Shirt Color: Black) Tj
+1 0 0 1 72 592 Tm
+(Placement: Full Front) Tj
+1 0 0 1 72 578 Tm
+(Vinyl Colors: White, Gold) Tj
+1 0 0 1 72 564 Tm
+(Color Complexity: multi) Tj
+1 0 0 1 72 550 Tm
+(Color Mapping: Logo=White, Stars=Gold) Tj
+1 0 0 1 72 536 Tm
+(Print Dimensions: 12 x 10) Tj
+1 0 0 1 72 522 Tm
+(Total Pieces: 8) Tj
+1 0 0 1 72 508 Tm
+(Sizes:) Tj
+1 0 0 1 72 494 Tm
+(M: 3) Tj
+1 0 0 1 72 480 Tm
+(S: 5) Tj
+1 0 0 1 72 466 Tm
+() Tj
+1 0 0 1 72 452 Tm
+(Logistics) Tj
+1 0 0 1 72 438 Tm
+(Need-By Date: 2026-07-15) Tj
+1 0 0 1 72 424 Tm
+(Rush Order: No) Tj
+1 0 0 1 72 410 Tm
+(Delivery: shipping) Tj
+1 0 0 1 72 396 Tm
+(Shipping Address: 123 Main St, Austin TX 78701) Tj
+1 0 0 1 72 382 Tm
+() Tj
+1 0 0 1 72 368 Tm
+(Additional Context) Tj
+1 0 0 1 72 354 Tm
+(Team reunion) Tj
+1 0 0 1 72 340 Tm
+() Tj
+1 0 0 1 72 326 Tm
+(Proof Approval) Tj
+1 0 0 1 72 312 Tm
+(Acknowledged: Yes) Tj
+ET
+
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001605 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1675
+%%EOF
