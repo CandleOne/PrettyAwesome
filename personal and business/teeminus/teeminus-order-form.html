@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Custom Quote Request — Tee-Minus</title>
+<style>
+@font-face {
+  font-family: 'NimbusRoman';
+  src: url('fonts/NimbusRomNo9L-Med.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* ── RESET ──────────────────────────────────────────────────────── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+  background-color: antiquewhite;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* ── NAVBAR ─────────────────────────────────────────────────────── */
+.navbar { 
+    background-color: black; 
+    width: 100%; 
+    padding: 1.2vw 2vw; /* Uses viewport scaling instead of fixed pixels */
+    display: flex; 
+    justify-content: flex-end; 
+} 
+
+.nav-buttons { 
+    display: flex; 
+    align-items: center; 
+    width: 100%; 
+    gap: 1.2vw; /* Dynamic spacing between buttons */
+} 
+
+.nav-btn { 
+    background-color: black; 
+    color: white; 
+    border: 0.15vw solid white; /* Border scales with screen size */
+    border-radius: 0; 
+    padding: 0.8vw 1.6vw; 
+    font-size: 2.1vw; /* Text scales perfectly with screen size */
+    font-weight: bold; 
+    cursor: pointer; 
+    text-decoration: none; 
+    display: inline-block;
+    transition: all 0.2s ease; 
+    white-space: nowrap; /* Prevents button text from wrapping */
+} 
+
+.nav-btn:hover { 
+    background-color: white; 
+    color: black; 
+} 
+
+.lg-nav-btn { 
+    background-color: black; 
+    color: white; 
+    border: 0.15vw solid white; 
+    border-radius: 0; 
+    padding: 0.8vw 4vw; 
+    font-size: 2.1vw; 
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+    margin-left: auto; /* Keeps 'Create' pinned safely on the far right */
+    white-space: nowrap;
+    text-decoration: none;
+} 
+
+.lg-nav-btn:hover { 
+    background-color: white; 
+    color: black; 
+} 
+/* ── PAGE HEADER ────────────────────────────────────────────────── */
+.page-header {
+  background-color: #055034;
+  width: 100%;
+  padding: 4vw 2vw 3vw;
+  text-align: center;
+  border-bottom: 0.4vw solid black;
+}
+.page-header .eyebrow {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.2vw;
+  font-weight: bold;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 1vw;
+}
+.page-header h1 {
+  font-family: 'NimbusRoman', serif;
+  font-size: 4.5vw;
+  color: antiquewhite;
+  white-space: nowrap;
+  line-height: 1.1;
+  margin-bottom: .8vw;
+}
+.page-header p {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.3vw;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.6;
+}
+
+/* ── FORM WRAP ──────────────────────────────────────────────────── */
+.form-wrap {
+  max-width: 860px;
+  margin: 3vw auto;
+  padding: 0 2vw 4vw;
+}
+
+/* ── SECTION CARD ───────────────────────────────────────────────── */
+.section-card {
+  background: antiquewhite;
+  border: 0.15vw solid black;
+  margin-bottom: 2vw;
+}
+.section-head {
+  background: black;
+  padding: 1.1vw 1.8vw;
+  display: flex;
+  align-items: baseline;
+  gap: 1vw;
+  border-bottom: 0.15vw solid black;
+}
+.section-num {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1vw;
+  font-weight: bold;
+  color: #055034;
+  letter-spacing: .08em;
+  flex-shrink: 0;
+}
+.section-head h2 {
+  font-family: 'NimbusRoman', serif;
+  font-size: 1.7vw;
+  font-weight: normal;
+  color: antiquewhite;
+  white-space: nowrap;
+}
+.section-head p {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1vw;
+  color: rgba(255,255,255,0.5);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.section-body { padding: 2vw 1.8vw; }
+
+/* ── FIELD ──────────────────────────────────────────────────────── */
+.field-grid { display: grid; grid-template-columns: 1fr; gap: 1.4vw; }
+.field-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.field-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.field { display: flex; flex-direction: column; gap: .4vw; }
+
+.field label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.05vw;
+  font-weight: bold;
+  color: black;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.field label .req { color: #055034; }
+.field .hint {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .85vw;
+  color: #555;
+}
+.field .hint.warn { color: #7a3c00; font-weight: bold; }
+
+/* ── INPUTS ─────────────────────────────────────────────────────── */
+.inp {
+  width: 100%;
+  padding: .75vw .9vw;
+  border: 0.15vw solid black;
+  border-radius: 0;
+  font-size: 1.1vw;
+  font-family: 'Courier New', Courier, monospace;
+  color: black;
+  background: #fffef8;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.inp:focus {
+  border-color: #055034;
+  box-shadow: inset 0 0 0 1px #055034;
+}
+.inp.error-field { border-color: #8b0000; background: #fff5f5; }
+textarea.inp { resize: vertical; min-height: 5vw; line-height: 1.6; }
+select.inp {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23000' stroke-width='1.5' fill='none' stroke-linecap='square'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .9vw center;
+  padding-right: 2.5vw;
+  cursor: pointer;
+}
+
+/* ── ERROR ──────────────────────────────────────────────────────── */
+.err-msg {
+  display: none;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .85vw;
+  font-weight: bold;
+  color: #8b0000;
+  letter-spacing: .02em;
+}
+.err-msg.visible { display: block; }
+.err-msg::before { content: '▲ '; }
+
+/* ── SIZE GRID ──────────────────────────────────────────────────── */
+.size-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: .8vw;
+  margin-top: .8vw;
+}
+.size-cell { display: flex; flex-direction: column; align-items: center; gap: .3vw; }
+.size-cell label {
+  font-size: .85vw;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #444;
+}
+.size-cell .inp { text-align: center; padding: .6vw .2vw; font-weight: bold; }
+
+.total-strip {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .8vw;
+  margin-top: 1vw;
+  padding: .7vw 1.2vw;
+  background: black;
+  border: 0.15vw solid black;
+}
+.total-strip span {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .95vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,0.6);
+}
+.total-strip strong {
+  font-family: 'NimbusRoman', serif;
+  font-size: 2.2vw;
+  color: antiquewhite;
+  min-width: 2ch;
+  text-align: right;
+}
+
+/* ── VINYL CHIPS ────────────────────────────────────────────────── */
+.vinyl-grid { display: flex; flex-wrap: wrap; gap: .6vw; margin-top: .6vw; }
+.vinyl-chip {
+  display: flex;
+  align-items: center;
+  gap: .4vw;
+  padding: .45vw .9vw;
+  border: 0.15vw solid black;
+  cursor: pointer;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .95vw;
+  font-weight: bold;
+  color: black;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  user-select: none;
+  transition: background .12s, color .12s;
+  background: #fffef8;
+}
+.vinyl-chip:hover { background: black; color: antiquewhite; }
+.vinyl-chip.checked { background: #055034; border-color: #055034; color: antiquewhite; }
+.vinyl-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.swatch {
+  width: 1vw; height: 1vw;
+  border: 0.1vw solid rgba(0,0,0,.3);
+  flex-shrink: 0;
+}
+
+/* ── RADIO / SELECTOR PILLS ─────────────────────────────────────── */
+.radio-group { display: flex; flex-wrap: wrap; gap: .6vw; }
+.radio-pill {
+  display: flex;
+  align-items: center;
+  gap: .4vw;
+  padding: .55vw 1.1vw;
+  border: 0.15vw solid black;
+  cursor: pointer;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: black;
+  user-select: none;
+  background: #fffef8;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.radio-pill input { position: absolute; opacity: 0; pointer-events: none; }
+.radio-pill:has(input:checked) {
+  background: #055034;
+  border-color: #055034;
+  color: antiquewhite;
+}
+.radio-pill:hover { border-color: #055034; }
+
+/* ── FILE UPLOAD ────────────────────────────────────────────────── */
+.upload-zone {
+  border: 0.2vw dashed black;
+  padding: 2.5vw 1.5vw;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  background: #fffef8;
+  transition: background .15s, border-color .15s;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: #055034;
+  background: #f0f8f4;
+}
+.upload-zone input[type="file"] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+.upload-icon {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 2vw;
+  margin-bottom: .5vw;
+  color: #055034;
+  font-weight: bold;
+}
+.upload-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.1vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: black;
+}
+.upload-sub {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .85vw;
+  color: #555;
+  margin-top: .3vw;
+}
+.file-chosen {
+  margin-top: .8vw;
+  display: none;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .9vw;
+  font-weight: bold;
+  color: #055034;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.file-chosen::before { content: '✓ '; }
+
+/* ── CONDITIONAL REVEAL ─────────────────────────────────────────── */
+.conditional {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height .28s ease, opacity .22s ease, margin .2s ease;
+  margin-top: 0;
+}
+.conditional.open { max-height: 500px; opacity: 1; margin-top: 1.2vw; }
+
+/* ── CHECKBOXES ─────────────────────────────────────────────────── */
+.check-row {
+  display: flex;
+  gap: 1vw;
+  align-items: flex-start;
+  padding: 1vw 1.2vw;
+  border: 0.15vw solid black;
+  cursor: pointer;
+  background: #fffef8;
+  transition: border-color .15s, background .15s;
+}
+.check-row:hover { border-color: #055034; }
+.check-row input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 1.4vw; height: 1.4vw;
+  min-width: 16px; min-height: 16px;
+  border: 0.15vw solid black;
+  border-radius: 0;
+  flex-shrink: 0;
+  margin-top: .2vw;
+  cursor: pointer;
+  position: relative;
+  transition: background .12s, border-color .12s;
+  background: #fffef8;
+}
+.check-row input[type="checkbox"]:checked {
+  background: #055034;
+  border-color: #055034;
+}
+.check-row input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 23%; top: 8%;
+  width: 45%; height: 65%;
+  border: 0.15vw solid antiquewhite;
+  border-top: none; border-left: none;
+  transform: rotate(42deg);
+}
+.check-row input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 2px rgba(5,80,52,.25);
+}
+.check-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .95vw;
+  line-height: 1.6;
+  color: black;
+}
+.check-label strong { font-weight: bold; }
+
+.check-row.rush { border-color: #5a3000; background: #fff8ee; }
+.check-row.rush:hover { border-color: #8b4500; }
+.check-row.legal { border-color: black; border-width: 0.2vw; background: #f5ffe8; }
+.check-row.legal:hover { border-color: #055034; }
+
+/* ── DIMENSIONS ─────────────────────────────────────────────────── */
+.dim-row { display: flex; gap: 1vw; align-items: flex-end; }
+.dim-row .field { flex: 1; }
+.dim-sep {
+  font-family: 'NimbusRoman', serif;
+  font-size: 2vw;
+  color: black;
+  padding-bottom: .7vw;
+}
+
+/* ── DIVIDER ────────────────────────────────────────────────────── */
+.rule { border: none; border-top: 0.1vw solid rgba(0,0,0,.18); margin: 1.5vw 0; }
+
+/* ── SUBMIT BUTTON ──────────────────────────────────────────────── */
+.submit-wrap { margin-top: 2vw; }
+.btn-submit {
+  width: 100%;
+  padding: 1.3vw 2vw;
+  background: #055034;
+  color: antiquewhite;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.5vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  transition: background .2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .8vw;
+}
+.btn-submit:hover { background: #033d25; }
+.btn-submit:active { background: #022418; }
+.form-note {
+  text-align: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .85vw;
+  color: #555;
+  margin-top: .7vw;
+  letter-spacing: .03em;
+}
+
+/* ── SUCCESS SCREEN ─────────────────────────────────────────────── */
+#success-screen {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+#success-screen.show { display: flex; }
+.success-card {
+  background: antiquewhite;
+  border: 0.3vw solid black;
+  padding: 4vw 3vw;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  animation: pop-in .3s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes pop-in { from { opacity:0; transform:scale(.9) } to { opacity:1; transform:scale(1) } }
+.success-check {
+  font-family: 'NimbusRoman', serif;
+  font-size: 4vw;
+  color: #055034;
+  margin-bottom: 1vw;
+}
+.success-card h2 {
+  font-family: 'NimbusRoman', serif;
+  font-size: 2.2vw;
+  font-weight: normal;
+  color: black;
+  margin-bottom: .8vw;
+  white-space: nowrap;
+}
+.success-card p {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .95vw;
+  color: #333;
+  line-height: 1.7;
+}
+.btn-dismiss {
+  margin-top: 2vw;
+  padding: .8vw 2.5vw;
+  background: black;
+  color: antiquewhite;
+  border: 0.15vw solid black;
+  border-radius: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.btn-dismiss:hover { background: antiquewhite; color: black; }
+
+/* ── CONFETTI CANVAS ────────────────────────────────────────────── */
+#confetti-canvas {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ── FOOTER ─────────────────────────────────────────────────────── */
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 2rem;
+  padding: 2rem 1rem;
+  background: #000000;
+  border-top: 1px solid #ddd;
+}
+.footer-column { flex: 1 1 200px; min-width: 150px; }
+.footer-column h1 {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: .5rem;
+  color: #ffffff;
+}
+.footer-column p {
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: .9rem;
+  color: #ffffff;
+  margin: .3rem 0;
+  cursor: pointer;
+}
+.footer-column p:hover { color: #055034; text-decoration: underline; }
+
+/* ── DESIGN SLOTS ──────────────────────────────────────────────── */
+.design-slot { margin-bottom: .5vw; }
+.slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .8vw;
+}
+.slot-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #055034;
+}
+.slot-remove-btn {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .8vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: none;
+  border: 0.12vw solid #8b0000;
+  color: #8b0000;
+  padding: .3vw .7vw;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.slot-remove-btn:hover { background: #8b0000; color: antiquewhite; }
+.add-design-btn {
+  width: 100%;
+  margin-top: 1.2vw;
+  padding: 1vw;
+  background: transparent;
+  border: 0.15vw dashed #055034;
+  color: #055034;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1vw;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.add-design-btn:hover { background: #055034; color: antiquewhite; }
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .page-header h1 { font-size: 7vw; white-space: normal; }
+  .page-header .eyebrow { font-size: 2.5vw; }
+  .page-header p { font-size: 2.8vw; }
+  .section-head h2 { font-size: 3.5vw; }
+  .section-num { font-size: 2.2vw; }
+  .section-head p { display: none; }
+  .field label { font-size: 2.4vw; }
+  .inp { font-size: 3vw; padding: 2vw; }
+  .field-grid.cols-2, .field-grid.cols-3 { grid-template-columns: 1fr; }
+  .size-grid { grid-template-columns: repeat(4, 1fr); }
+  .vinyl-chip { font-size: 2.5vw; padding: 1.2vw 2vw; }
+  .swatch { width: 3vw; height: 3vw; }
+  .radio-pill { font-size: 2.5vw; padding: 1.2vw 2.5vw; }
+  .check-label { font-size: 2.5vw; }
+  .btn-submit { font-size: 3.5vw; padding: 3vw; }
+  .form-note { font-size: 2.2vw; }
+  .err-msg { font-size: 2.2vw; }
+  .hint { font-size: 2vw; }
+  .total-strip span { font-size: 2.2vw; }
+  .total-strip strong { font-size: 5vw; }
+  .upload-label { font-size: 2.8vw; }
+  .upload-sub { font-size: 2.2vw; }
+  .upload-icon { font-size: 5vw; }
+  .file-chosen { font-size: 2.2vw; }
+  .success-card h2 { font-size: 5vw; white-space: normal; }
+  .success-card p { font-size: 2.8vw; }
+  .success-check { font-size: 9vw; }
+  .btn-dismiss { font-size: 2.8vw; padding: 2vw 5vw; }
+  .nav-btn, .lg-nav-btn { font-size: 3.5vw; }
+  .dim-sep { font-size: 4vw; }
+}
+</style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="home.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+<!-- ── HEADER ──────────────────────────────────────────────────────── -->
+<header class="page-header">
+  <div class="eyebrow">Tee-Minus · Custom Orders</div>
+  <h1>Request a Quote</h1>
+  <p>Fill out the form below. We'll reply within 1 business day with pricing and next steps.</p>
+</header>
+
+<!-- ── CONFETTI + SUCCESS ──────────────────────────────────────────── -->
+<canvas id="confetti-canvas"></canvas>
+<div id="success-screen">
+  <div class="success-card">
+    <div class="success-check">✓</div>
+    <h2>Quote request sent.</h2>
+    <p>We'll review your details and email you a quote within 1 business day. A digital proof will be sent before anything goes to press.</p>
+    <button class="btn-dismiss" onclick="dismissSuccess()">Got it</button>
+  </div>
+</div>
+
+<!-- ── FORM ────────────────────────────────────────────────────────── -->
+<div class="form-wrap">
+<div style="text-align:right; margin-bottom:.8vw">
+  <button type="button" onclick="autofillForm()" style="
+    font-family:'Courier New',Courier,monospace;
+    font-size:.85vw;
+    font-weight:bold;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    padding:.45vw 1.1vw;
+    border:0.15vw dashed #888;
+    background:transparent;
+    color:#666;
+    cursor:pointer;
+    transition:border-color .15s,color .15s;
+  " onmouseover="this.style.borderColor='#055034';this.style.color='#055034'" onmouseout="this.style.borderColor='#888';this.style.color='#666'">⚡ Autofill test data</button>
+</div>
+<form id="quote-form" novalidate>
+
+  <!-- ① YOUR INFO ─────────────────────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2>Your information</h2>
+      <p>For quote delivery &amp; proof approval</p>
+    </div>
+    <div class="section-body">
+      <div class="field-grid cols-2">
+        <div class="field" style="grid-column:1/-1">
+          <label for="name">Full name or organization <span class="req">*</span></label>
+          <input id="name" class="inp" type="text" placeholder="Jane Smith or Riverside HS Athletics" required />
+          <span class="err-msg" id="err-name">Enter your name or organization.</span>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label for="project-name">Project name <span class="req">*</span></label>
+          <input id="project-name" class="inp" type="text" placeholder="e.g., Spring 2026 Reunion, Panthers Football, Company Picnic" required />
+          <span class="err-msg" id="err-project-name">Enter a project name.</span>
+        </div>
+        <div class="field">
+          <label for="email">Email address <span class="req">*</span></label>
+          <input id="email" class="inp" type="email" placeholder="you@example.com" required />
+          <span class="err-msg" id="err-email">Enter a valid email address.</span>
+        </div>
+        <div class="field">
+          <label for="phone">Phone number <span class="req">*</span></label>
+          <input id="phone" class="inp" type="tel" placeholder="(555) 000-0000" required />
+          <span class="err-msg" id="err-phone">A phone number is required.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② DESIGN FILE ───────────────────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2>Design file</h2>
+      <p>Upload artwork, or describe it below</p>
+    </div>
+    <div class="section-body">
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="design-file" accept=".ai,.eps,.svg,.png,.pdf" />
+        <div class="upload-icon">↑</div>
+        <div class="upload-label">Drop file here or click to browse</div>
+        <div class="upload-sub">.ai · .eps · .svg · .png · .pdf — 10 MB max</div>
+        <div class="file-chosen" id="file-chosen-name"><span id="chosen-name"></span></div>
+      </div>
+      <span class="err-msg" id="err-file" style="margin-top:.5vw"></span>
+    </div>
+  </div>
+
+  <!-- ③ ORDER DETAILS ─────────────────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2>Order details</h2>
+      <p>Sizes, colors, placement, dimensions</p>
+    </div>
+    <div class="section-body">
+
+      <!-- Quantities -->
+      <div class="field" style="margin-bottom:1.5vw">
+        <label>Quantity by size <span class="req">*</span></label>
+        <div class="hint">Enter 0 for sizes you don't need. Minimum 1 total piece.</div>
+        <div class="size-grid">
+          <div class="size-cell"><label for="sz-xs">XS</label><input id="sz-xs" class="inp" type="number" min="0" value="0" data-size /></div>
+          <div class="size-cell"><label for="sz-s">S</label><input id="sz-s" class="inp" type="number" min="0" value="0" data-size /></div>
+          <div class="size-cell"><label for="sz-m">M</label><input id="sz-m" class="inp" type="number" min="0" value="0" data-size /></div>
+          <div class="size-cell"><label for="sz-l">L</label><input id="sz-l" class="inp" type="number" min="0" value="0" data-size /></div>
+          <div class="size-cell"><label for="sz-xl">XL</label><input id="sz-xl" class="inp" type="number" min="0" value="0" data-size /></div>
+          <div class="size-cell"><label for="sz-2xl">2XL</label><input id="sz-2xl" class="inp" type="number" min="0" value="0" data-size /></div>
+          <div class="size-cell"><label for="sz-3xl">3XL</label><input id="sz-3xl" class="inp" type="number" min="0" value="0" data-size /></div>
+        </div>
+        <div class="total-strip">
+          <span>Total pieces</span>
+          <strong id="total-count">0</strong>
+        </div>
+        <span class="err-msg" id="err-qty">At least 1 piece required.</span>
+      </div>
+
+      <hr class="rule" />
+
+      <div class="field-grid cols-2" style="margin-bottom:1.5vw">
+        <div class="field">
+          <label for="shirt-color">Shirt color <span class="req">*</span></label>
+          <select id="shirt-color" class="inp" required>
+            <option value="">— Select —</option>
+            <option>White</option><option>Black</option><option>Navy</option>
+            <option>Royal Blue</option><option>Red</option><option>Forest Green</option>
+            <option>Gold</option><option>Ash Grey</option><option>Pink</option><option>Purple</option>
+          </select>
+          <span class="err-msg" id="err-shirt-color">Choose a shirt color.</span>
+        </div>
+        <div class="field">
+          <label for="placement">Design placement <span class="req">*</span></label>
+          <select id="placement" class="inp" required>
+            <option value="">— Select —</option>
+            <option>Front Chest</option><option>Full Front</option><option>Upper Back</option>
+            <option>Full Back</option><option>Left Sleeve</option><option>Right Sleeve</option>
+          </select>
+          <span class="err-msg" id="err-placement">Choose a placement.</span>
+        </div>
+      </div>
+
+      <hr class="rule" />
+
+      <!-- Vinyl colors -->
+      <div class="field" style="margin-bottom:1.5vw">
+        <label>Vinyl color(s) <span class="req">*</span></label>
+        <div class="hint">Select all that apply to your design.</div>
+        <div class="vinyl-grid" id="vinyl-chips"></div>
+        <span class="err-msg" id="err-vinyl">Select at least one vinyl color.</span>
+      </div>
+
+      <hr class="rule" />
+
+      <!-- Single / Multi -->
+      <div class="field" style="margin-bottom:1.5vw">
+        <label>Color complexity <span class="req">*</span></label>
+        <div class="radio-group" id="color-complexity">
+          <label class="radio-pill"><input type="radio" name="color-complexity" value="single" />Single color</label>
+          <label class="radio-pill"><input type="radio" name="color-complexity" value="multi" />Multi-color</label>
+        </div>
+        <span class="err-msg" id="err-complexity">Select single or multi-color.</span>
+        <div class="conditional" id="cond-multicolor">
+          <div class="field">
+            <label for="color-mapping">Color mapping <span class="req">*</span></label>
+            <textarea id="color-mapping" class="inp" placeholder="e.g., Logo text = White, Star icon = Gold, Background = Navy" rows="3"></textarea>
+            <span class="err-msg" id="err-color-mapping">Describe which part gets which color.</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="rule" />
+
+      <!-- Print dimensions -->
+      <div class="field">
+        <label>Print dimensions</label>
+        <div class="hint warn">↑ Larger sizes may affect final pricing.</div>
+        <div class="dim-row" style="margin-top:.7vw">
+          <div class="field">
+            <label for="dim-w" style="text-transform:none; font-weight:normal; font-size:.9vw; letter-spacing:0">Width (inches)</label>
+            <input id="dim-w" class="inp" type="number" min="1" max="16" step="0.5" placeholder="e.g. 10" />
+          </div>
+          <div class="dim-sep">×</div>
+          <div class="field">
+            <label for="dim-h" style="text-transform:none; font-weight:normal; font-size:.9vw; letter-spacing:0">Height (inches)</label>
+            <input id="dim-h" class="inp" type="number" min="1" max="16" step="0.5" placeholder="e.g. 8" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ④ LOGISTICS ─────────────────────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2>Logistics &amp; timeline</h2>
+      <p>When and how you need it</p>
+    </div>
+    <div class="section-body">
+      <div class="field-grid">
+
+        <div class="field">
+          <label style="cursor:default">Rush order?</label>
+          <label class="check-row rush">
+            <input type="checkbox" id="rush-check" />
+            <span class="check-label">This is a rush order (under 5 business days) — I acknowledge a <strong>20% rush fee</strong> may apply.</span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label>Delivery method <span class="req">*</span></label>
+          <div class="radio-group" id="delivery-group">
+            <label class="radio-pill"><input type="radio" name="delivery" value="pickup" />Local pickup</label>
+            <label class="radio-pill"><input type="radio" name="delivery" value="shipping" />Ship to me</label>
+          </div>
+          <span class="err-msg" id="err-delivery">Choose pickup or shipping.</span>
+          <div class="conditional" id="cond-shipping">
+            <div class="field">
+              <label for="ship-address">Shipping address <span class="req">*</span></label>
+              <textarea id="ship-address" class="inp" placeholder="Street, City, State, ZIP" rows="3"></textarea>
+              <span class="err-msg" id="err-ship-address">Enter your full shipping address.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ ADDITIONAL CONTEXT ─────────────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2>Additional context</h2>
+      <p>Optional — helps us serve you better</p>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label for="context">Design description or occasion</label>
+        <textarea id="context" class="inp" placeholder="e.g., Corporate team-building event, 10-year reunion, or sports team — helps us suggest designs!" rows="3"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ PROOF APPROVAL ─────────────────────────────────────────────── -->
+  <div class="section-card" style="border-color:#055034; border-width:0.2vw">
+    <div class="section-head" style="background:#055034">
+      <span class="section-num" style="color:antiquewhite; opacity:.65">06</span>
+      <h2>Proof approval</h2>
+      <p>Production never starts without your sign-off</p>
+    </div>
+    <div class="section-body">
+      <label class="check-row legal">
+        <input type="checkbox" id="proof-approval" required />
+        <span class="check-label">
+          I understand that a <strong>digital mockup will be sent to my email</strong> for final approval before production begins.
+          Production will not start until I approve the proof.
+        </span>
+      </label>
+      <span class="err-msg" id="err-proof" style="margin-top:.5vw">You must acknowledge the proof approval process.</span>
+    </div>
+  </div>
+
+  <!-- SUBMIT ──────────────────────────────────────────────────────── -->
+  <div class="submit-wrap">
+    <button type="submit" class="btn-submit">→ Submit quote request</button>
+    <p class="form-note">No payment required. We'll reply within 1 business day.</p>
+  </div>
+
+</form>
+</div>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-column">
+    <h1>Tee-Minus</h1>
+    <p>Home</p><p>Shop</p><p>About</p><p>Contact</p>
+  </div>
+  <div class="footer-column">
+    <h1>Services</h1>
+    <p>Custom Orders</p><p>Bulk Pricing</p><p>Rush Orders</p>
+  </div>
+  <div class="footer-column">
+    <h1>Info</h1>
+    <p>Turnaround Times</p><p>File Requirements</p><p>FAQ</p>
+  </div>
+</footer>
+
+<script>
+/* ── VINYL COLORS ───────────────────────────────────────────────── */
+const VINYL = [
+  {name:'White',      hex:'#ffffff'},
+  {name:'Black',      hex:'#111111'},
+  {name:'Red',        hex:'#dc2626'},
+  {name:'Navy',       hex:'#1e3a5f'},
+  {name:'Gold',       hex:'#f59e0b'},
+  {name:'Silver',     hex:'#9ca3af'},
+  {name:'Neon Yellow',hex:'#ecff33'},
+  {name:'Orange',     hex:'#ea580c'},
+  {name:'Royal Blue', hex:'#2563eb'},
+];
+const vinylGrid = document.getElementById('vinyl-chips');
+VINYL.forEach(c => {
+  const lbl = document.createElement('label');
+  lbl.className = 'vinyl-chip';
+  lbl.innerHTML = `<input type="checkbox" name="vinyl-color" value="${c.name}" />
+    <span class="swatch" style="background:${c.hex};${c.hex==='#ffffff'?'border:1px solid #aaa;':''}"></span>${c.name}`;
+  lbl.querySelector('input').addEventListener('change', () => {
+    lbl.classList.toggle('checked', lbl.querySelector('input').checked);
+    clearErr('err-vinyl');
+  });
+  vinylGrid.appendChild(lbl);
+});
+
+/* ── UTILITY ────────────────────────────────────────────────────── */
+function addBizDays(date, n) {
+  const d = new Date(date); let added = 0;
+  while (added < n) { d.setDate(d.getDate()+1); const day=d.getDay(); if(day!==0&&day!==6) added++; }
+  return d;
+}
+
+/* ── SIZE TOTAL ─────────────────────────────────────────────────── */
+const sizeInputs = document.querySelectorAll('[data-size]');
+const totalEl = document.getElementById('total-count');
+function updateTotal() {
+  let sum = 0;
+  sizeInputs.forEach(i => { sum += Math.max(0, parseInt(i.value)||0); });
+  totalEl.textContent = sum;
+  if (sum > 0) clearErr('err-qty');
+}
+sizeInputs.forEach(i => i.addEventListener('input', updateTotal));
+
+/* ── CONDITIONALS ───────────────────────────────────────────────── */
+function toggle(id, show) {
+  document.getElementById(id).classList.toggle('open', show);
+}
+document.getElementById('delivery-group').addEventListener('change', e => {
+  toggle('cond-shipping', e.target.value === 'shipping');
+  clearErr('err-delivery');
+});
+
+/* ── DESIGN SLOTS ────────────────────────────────────────────────── */
+const fileInput = document.getElementById('design-file');
+const zone = document.getElementById('upload-zone');
+const fileChosenEl = document.getElementById('file-chosen-name');
+const chosenNameEl = document.getElementById('chosen-name');
+function handleFile(file) {
+  clearErr('err-file');
+  if (!file) return;
+  if (file.size > 10*1024*1024) {
+    showErr('err-file', `File too large (${(file.size/1024/1024).toFixed(1)} MB). Max is 10 MB.`);
+    fileInput.value=''; fileChosenEl.style.display='none'; return;
+  }
+  chosenNameEl.textContent = file.name;
+  fileChosenEl.style.display = 'block';
+}
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) { fileInput.files=e.dataTransfer.files; handleFile(e.dataTransfer.files[0]); }
+});
+
+/* ── ERRORS ─────────────────────────────────────────────────────── */
+function showErr(id, msg) {
+  const el = document.getElementById(id); if(!el) return;
+  if (msg) el.textContent = msg;
+  el.classList.add('visible');
+  const inp = el.previousElementSibling;
+  if (inp && inp.classList.contains('inp')) inp.classList.add('error-field');
+}
+function showErrEl(id) { const el=document.getElementById(id); if(el) el.classList.add('visible'); }
+function clearErr(id) {
+  const el = document.getElementById(id); if(!el) return;
+  el.classList.remove('visible');
+  const inp = el.previousElementSibling;
+  if (inp && inp.classList.contains('inp')) inp.classList.remove('error-field');
+}
+document.querySelectorAll('.inp').forEach(inp => {
+  ['input','change'].forEach(ev => inp.addEventListener(ev, () => {
+    const next = inp.nextElementSibling;
+    if (next && next.classList.contains('err-msg')) { next.classList.remove('visible'); inp.classList.remove('error-field'); }
+  }));
+});
+
+/* ── VALIDATE ───────────────────────────────────────────────────── */
+function validate() {
+  let ok = true;
+  if (!document.getElementById('name').value.trim()) { showErrEl('err-name'); ok=false; } else clearErr('err-name');
+  if (!document.getElementById('project-name').value.trim()) { showErrEl('err-project-name'); ok=false; } else clearErr('err-project-name');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('email').value.trim())) { showErrEl('err-email'); ok=false; } else clearErr('err-email');
+  if (!document.getElementById('phone').value.trim()) { showErrEl('err-phone'); ok=false; } else clearErr('err-phone');
+  if (!document.getElementById('shirt-color').value) { showErrEl('err-shirt-color'); ok=false; } else clearErr('err-shirt-color');
+  document.querySelectorAll('.design-slot').forEach(slot => {
+    const n = slot.dataset.slot;
+    if (!document.getElementById(`placement-${n}`).value) { showErrEl(`err-placement-${n}`); ok=false; } else clearErr(`err-placement-${n}`);
+  });
+  if ((parseInt(totalEl.textContent)||0) < 1) { showErrEl('err-qty'); ok=false; } else clearErr('err-qty');
+  const dlv = document.querySelector('input[name="delivery"]:checked');
+  if (!dlv) { showErrEl('err-delivery'); ok=false; } else {
+    clearErr('err-delivery');
+    if (dlv.value==='shipping'&&!document.getElementById('ship-address').value.trim()) { showErrEl('err-ship-address'); ok=false; } else clearErr('err-ship-address');
+  }
+  if (!document.getElementById('proof-approval').checked) { showErrEl('err-proof'); ok=false; } else clearErr('err-proof');
+  return ok;
+}
+
+/* ── COLLECT ────────────────────────────────────────────────────── */
+function collect() {
+  const sizes = {};
+  sizeInputs.forEach(i => { sizes[i.id.replace('sz-','').toUpperCase()] = parseInt(i.value)||0; });
+  const dlv = document.querySelector('input[name="delivery"]:checked')?.value;
+  const designs = [...document.querySelectorAll('.design-slot')].map(slot => {
+    const n = slot.dataset.slot;
+    return { slot: Number(n), placement: document.getElementById(`placement-${n}`).value, fileName: document.getElementById(`design-file-${n}`)?.files[0]?.name || null };
+  });
+  return {
+    projectName: document.getElementById('project-name').value.trim(),
+    client:{ name:document.getElementById('name').value.trim(), email:document.getElementById('email').value.trim(), phone:document.getElementById('phone').value.trim() },
+    shirtColor: document.getElementById('shirt-color').value,
+    designs,
+    quantities: sizes,
+    totalPieces: parseInt(totalEl.textContent)||0,
+    logistics:{ rushOrder:document.getElementById('rush-check').checked, delivery:dlv, shippingAddress:dlv==='shipping'?document.getElementById('ship-address').value.trim():null },
+    context:document.getElementById('context').value.trim()||null,
+    proofApprovalAcknowledged:true,
+    submittedAt:new Date().toISOString()
+  };
+}
+
+/* ── CONFETTI ───────────────────────────────────────────────────── */
+function launchConfetti() {
+  const cv = document.getElementById('confetti-canvas');
+  const ctx = cv.getContext('2d');
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  const palette = ['#055034','#08754c','antiquewhite','#000000','#fde68a','#b7dece'];
+  const pieces = Array.from({length:80}, ()=>({
+    x:Math.random()*cv.width, y:-20-Math.random()*80,
+    w:6+Math.random()*8, h:3+Math.random()*5,
+    color:palette[Math.floor(Math.random()*palette.length)],
+    vx:(Math.random()-.5)*2.2, vy:2.8+Math.random()*2.8,
+    angle:Math.random()*360, spin:(Math.random()-.5)*5,
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0,0,cv.width,cv.height);
+    pieces.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.angle+=p.spin; p.vy+=.04;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.angle*Math.PI/180);
+      ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+    });
+    if(++frame<200) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,cv.width,cv.height);
+  }
+  draw();
+}
+
+/* ── FILE TO BASE64 ─────────────────────────────────────────────── */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ── AUTOFILL TEST DATA ──────────────────────────────────────────── */
+function autofillForm() {
+  // Section 01 — Your Info
+  document.getElementById('name').value         = 'Jane Smith';
+  document.getElementById('project-name').value = 'Summer 2026 Reunion';
+  document.getElementById('email').value        = 'jane@example.com';
+  document.getElementById('phone').value        = '(555) 123-4567';
+
+  // Section 02 — Design(s)
+  document.getElementById('shirt-color').value  = 'Black';
+  document.getElementById('placement-1').value  = 'Full Front';
+
+  // Section 03 — Quantities
+  document.getElementById('sz-xs').value  = '0';
+  document.getElementById('sz-s').value   = '10';
+  document.getElementById('sz-m').value   = '15';
+  document.getElementById('sz-l').value   = '10';
+  document.getElementById('sz-xl').value  = '5';
+  document.getElementById('sz-2xl').value = '2';
+  document.getElementById('sz-3xl').value = '0';
+  updateTotal();
+
+  // Section 04 — Logistics
+  const shipRadio = document.querySelector('input[name="delivery"][value="shipping"]');
+  shipRadio.checked = true;
+  toggle('cond-shipping', true);
+  document.getElementById('ship-address').value = '123 Main Street, Austin, TX 78701';
+
+  // Section 05 — Additional context
+  document.getElementById('context').value = 'Annual summer reunion — approx. 42 attendees.';
+
+  // Section 06 — Proof approval
+  document.getElementById('proof-approval').checked = true;
+
+  // Clear any stale error states
+  document.querySelectorAll('.err-msg.visible').forEach(el => el.classList.remove('visible'));
+  document.querySelectorAll('.inp.error-field').forEach(el => el.classList.remove('error-field'));
+}
+
+/* ── SUBMIT ─────────────────────────────────────────────────────── */
+document.getElementById('quote-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!validate()) {
+    const first = document.querySelector('.err-msg.visible');
+    if (first) first.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+
+  const payload = collect();
+  const submitButton = document.querySelector('.btn-submit');
+  const originalText = submitButton.textContent;
+  submitButton.disabled = true;
+
+  try {
+    // Step 1: upload design files to Cloudinary
+    const slots = [...document.querySelectorAll('.design-slot')];
+    for (let i = 0; i < slots.length; i++) {
+      const n = slots[i].dataset.slot;
+      const fileInp = document.getElementById(`design-file-${n}`);
+      const file = fileInp?.files[0];
+      if (file) {
+        submitButton.textContent = slots.length > 1 ? `Uploading design ${i+1} of ${slots.length}…` : 'Uploading design…';
+        const b64 = await fileToBase64(file);
+        const uploadResp = await fetch('http://127.0.0.1:8000/upload-design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project_name: payload.projectName, filename: file.name, mimetype: file.type, data: b64 })
+        });
+        const uploadResult = await uploadResp.json();
+        if (!uploadResp.ok || !uploadResult.ok) throw new Error(uploadResult.error || 'Design upload failed');
+        payload.designs[i].cloudinaryUrl = uploadResult.url;
+        console.log(`Design ${i+1} uploaded:`, uploadResult.url);
+      }
+    }
+
+    // Step 2: save quote PDF
+    submitButton.textContent = 'Saving…';
+    const response = await fetch('http://127.0.0.1:8000/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || 'Unable to save quote request');
+
+    console.log('%c✅ Tee-Minus Quote Saved', 'color:#055034;font-weight:bold;font-size:14px');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('Saved PDF:', result.file);
+    document.getElementById('success-screen').classList.add('show');
+    launchConfetti();
+  } catch (error) {
+    console.error(error);
+    alert('Error: ' + error.message + '\n\nMake sure the local server is running.');
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = originalText;
+  }
+});
+
+function dismissSuccess() {
+  document.getElementById('success-screen').classList.remove('show');
+  document.getElementById('quote-form').reset();
+  totalEl.textContent='0';
+  document.querySelectorAll('.conditional.open').forEach(c=>c.classList.remove('open'));
+  const container = document.getElementById('design-slots');
+  container.innerHTML = '';
+  slotCounter = 0;
+  addDesignSlot();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

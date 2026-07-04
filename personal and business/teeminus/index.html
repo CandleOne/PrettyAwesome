@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tee-Minus</title>
+  <meta name="description" content="" />
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+
+  <!-- Fabric.js for 2D editing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+  <!-- Three.js + OrbitControls (global) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    /* ===== CREATOR STYLES ===== */
+    .creator {
+      --green: #0c6c49;
+      --green-light: #e8f5f0;
+      --green-dark: #044029;
+      --radius: 8px;
+      --border: rgba(0, 0, 0, 0.10);
+      --border-strong: rgba(0, 0, 0, 0.20);
+      --surface-1: #f5f5f5;
+      --surface-2: #ffffff;
+      --text-primary: #1a1a1a;
+      --text-muted: #6b7280;
+      --text-secondary: #4b5563;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem;
+      background: #ffffff;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .creator .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    /* ---- STEP TABS ---- */
+    .creator .steps {
+      display: flex;
+      border: none;
+      background: transparent;
+      margin-bottom: 1.5rem;
+    }
+    .creator .step-tab {
+      flex: 1;
+      padding: 0.55rem 0.25rem;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: #333;
+      background: transparent;
+      border: 1px solid #000;
+      border-right: none;
+      border-radius: 0;
+      cursor: default;
+      transition: background 0.15s, color 0.15s;
+    }
+    .creator .step-tab:last-child {
+      border-right: 1px solid #000;
+    }
+    .creator .step-tab .num {
+      display: block;
+      font-size: 10px;
+      font-weight: 400;
+      margin-bottom: 1px;
+      opacity: 0.7;
+    }
+    .creator .step-tab.active {
+      background: var(--green);
+      color: #fff;
+    }
+    .creator .step-tab.active .num {
+      opacity: 0.8;
+    }
+    .creator .step-tab.done {
+      background: transparent;
+      color: var(--green);
+    }
+    .creator .step-tab.done .num {
+      opacity: 0.7;
+    }
+
+    /* ---- OPTION BUTTONS ---- */
+    .creator .opt-btn {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      background: transparent;
+      border: 1px solid #000;
+      border-radius: 0;
+      color: #333;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      margin-bottom: 7px;
+      font-family: inherit;
+    }
+    .creator .opt-btn:hover {
+      background: #f5f5f5;
+    }
+    .creator .opt-btn.selected {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+    .creator .opt-btn.selected .opt-btn-sub {
+      color: rgba(255, 255, 255, 0.85);
+    }
+    .creator .opt-btn-sub {
+      font-size: 11px;
+      color: #666;
+      font-weight: 400;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* ---- PANELS ---- */
+    .creator .panel {
+      display: none;
+    }
+    .creator .panel.active {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .creator .controls {
+      flex: 1;
+      min-width: 220px;
+    }
+    .creator .preview-col {
+      flex: 0 0 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .creator .preview-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .creator .shirt-img {
+      width: 160px;
+      height: auto;
+      object-fit: contain;
+      transition: opacity 0.2s;
+      border-radius: 4px;
+    }
+    .creator .shirt-wrap {
+      position: relative;
+      width: 160px;
+    }
+    .creator .art-overlay {
+      position: absolute;
+      object-fit: contain;
+      border-radius: 2px;
+      pointer-events: none;
+      display: none;
+    }
+    .creator .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    /* ---- COLOR SWATCHES ---- */
+    .creator .color-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .creator .color-swatch {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2.5px solid transparent;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .creator .color-swatch:hover {
+      transform: scale(1.1);
+    }
+    .creator .color-swatch.selected {
+      box-shadow: 0 0 0 3px #fff, 0 0 0 5.5px var(--green);
+    }
+    .creator .color-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      height: 16px;
+      text-align: center;
+    }
+
+    /* ---- NAVIGATION ---- */
+    .creator .nav-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 0.5px solid var(--border);
+      width: 100%;
+    }
+    .creator .btn {
+      padding: 9px 18px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.12s;
+      font-weight: 500;
+    }
+    .creator .btn-back {
+      background: var(--surface-1);
+      border: 0.5px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .creator .btn-back:hover {
+      border-color: var(--border-strong);
+    }
+    .creator .btn-next {
+      background: var(--green);
+      border: none;
+      color: #fff;
+    }
+    .creator .btn-next:hover:not(:disabled) {
+      background: var(--green-dark);
+    }
+    .creator .btn-next:disabled {
+      background: #c8c8c8;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    /* ---- SUMMARY ---- */
+    .creator .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 1.25rem;
+    }
+    .creator .summary-card {
+      background: var(--surface-1);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+    }
+    .creator .summary-card .sk {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .creator .summary-card .sv {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .creator .swatch-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 0.5px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ---- NAME INPUT ---- */
+    .creator .name-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-family: inherit;
+      background: var(--surface-2);
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+    .creator .name-input:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    /* ---- SUCCESS BANNER ---- */
+    .creator .success-banner {
+      background: #e6f4ef;
+      border: 0.5px solid #b7dece;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+    .creator .success-banner.show {
+      display: flex;
+    }
+    .creator .success-banner p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    /* ---- CROP INDICATOR ---- */
+    .creator .crop-indicator {
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: rgba(255, 200, 50, 0.85);
+      border-radius: 1px;
+      pointer-events: none;
+      display: none;
+    }
+    .creator .crop-indicator::before,
+    .creator .crop-indicator::after {
+      content: '✂';
+      position: absolute;
+      top: -8px;
+      font-size: 13px;
+      color: rgba(200, 150, 0, 0.9);
+    }
+    .creator .crop-indicator::before {
+      left: -4px;
+    }
+    .creator .crop-indicator::after {
+      right: -4px;
+    }
+
+    /* ---- ART WORKSPACE ---- */
+    .creator .art-workspace {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    .creator .art-canvas-container {
+      flex: 1 1 400px;
+      min-width: 300px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #f9fafb;
+      position: relative;
+    }
+    .creator .art-canvas-container canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .creator .art-3d-container {
+      flex: 1 1 300px;
+      min-width: 200px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #f3f4f6;
+      position: relative;
+      height: 450px;
+    }
+    .creator .art-3d-container #three-container {
+      width: 100%;
+      height: 100%;
+    }
+    .creator .art-tools {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .creator .art-tools button {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-1);
+      cursor: pointer;
+      font-size: 13px;
+      transition: 0.15s;
+    }
+    .creator .art-tools button:hover {
+      background: var(--surface-2);
+      border-color: var(--green);
+    }
+    .creator .art-tools button.danger:hover {
+      border-color: #b91c1c;
+      background: #fee2e2;
+    }
+    .creator .art-upload-btn {
+      display: inline-block;
+      padding: 6px 14px;
+      border: 1px solid var(--green);
+      border-radius: var(--radius);
+      background: var(--green-light);
+      color: var(--green);
+      cursor: pointer;
+      font-size: 13px;
+      transition: 0.15s;
+    }
+    .creator .art-upload-btn:hover {
+      background: var(--green);
+      color: #fff;
+    }
+    .creator .art-upload-btn input {
+      display: none;
+    }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 640px) {
+      .creator .panel.active {
+        flex-direction: column;
+        align-items: center;
+      }
+      .creator .preview-col {
+        flex: 0 0 auto;
+      }
+      .creator .steps .step-tab {
+        font-size: 10px;
+        padding: 0.4rem 0.2rem;
+      }
+      .creator .summary-grid {
+        grid-template-columns: 1fr;
+      }
+      .creator .art-workspace {
+        flex-direction: column;
+      }
+      .creator .art-3d-container {
+        height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="home.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <!-- ===== HERO + MISSION ===== -->
+  <div class="hero-container">
+    <img class="hero-logo" src="teeminuslogo.png" alt="Tee-Minus Logo" />
+    <img class="hero-illustration" src="hillcommuill.png" alt="Town Illustration" />
+  </div>
+
+  <div class="mission-section">
+    <h1>T-Shirts Without the BS.</h1>
+    <p class="mission-text">
+      tee-minus is a company built with one mission in mind. <br />
+      fixing Print-On-Demand
+    </p>
+  </div>
+
+  <!-- ===== CREATOR SECTION ===== -->
+  <div class="creator-section">
+    <div class="creator" role="main">
+      <h2 class="sr-only">Design your dream shirt</h2>
+      <br />
+
+      <!-- Step tabs -->
+      <div class="steps" role="tablist">
+        <div class="step-tab active" data-step="0"><span class="num">01</span>Fit</div>
+        <div class="step-tab" data-step="1"><span class="num">02</span>Material</div>
+        <div class="step-tab" data-step="2"><span class="num">03</span>Color</div>
+        <div class="step-tab" data-step="3"><span class="num">04</span>Crop</div>
+        <div class="step-tab" data-step="4"><span class="num">05</span>Your Art</div>
+        <div class="step-tab" data-step="5"><span class="num">06</span>Finish</div>
+      </div>
+
+      <!-- Step 0: Fit -->
+      <div class="panel active" id="panel-0">
+        <div class="controls">
+          <p class="section-label">Find your fit</p>
+          <button class="opt-btn" data-group="fit" data-val="casual" onclick="pick(this)">
+            Casual <span class="opt-btn-sub">Relaxed everyday fit</span>
+          </button>
+          <button class="opt-btn" data-group="fit" data-val="boxy" onclick="pick(this)">
+            Boxy <span class="opt-btn-sub">Bold, square silhouette · shorter cut</span>
+          </button>
+          <!-- <button class="opt-btn" data-group="fit" data-val="sporty" onclick="pick(this)">
+            Sporty <span class="opt-btn-sub">Athletic cut · close to the body</span>
+          </button>     --!>
+        </div>
+        <div class="preview-col">
+          <span class="preview-label">Preview</span>
+          <div class="shirt-wrap">
+            <img id="main-shirt" class="shirt-img" src="" alt="Shirt preview" />
+            <div class="crop-indicator" id="crop-line"></div>
+            <img class="art-overlay" id="art-overlay" alt="" />
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn btn-next" id="next-0" onclick="nextStep()" disabled>
+            Next: Choose your material →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 1: Material -->
+      <div class="panel" id="panel-1">
+        <div class="controls">
+          <p class="section-label">Choose your material</p>
+          <button class="opt-btn" data-group="material" data-val="cotton" onclick="pick(this)">
+            Cotton <span class="opt-btn-sub">Soft · classic feel · widely available</span>
+          </button>
+          <button class="opt-btn" data-group="material" data-val="hemp" onclick="pick(this)">
+            Hemp <span class="opt-btn-sub">Durable · breathable · low water use</span>
+          </button>
+          <button class="opt-btn" data-group="material" data-val="wool" onclick="pick(this)">
+            Merino Wool <span class="opt-btn-sub">Temperature-regulating · odor-resistant</span>
+          </button>
+        </div>
+        <div class="preview-col">
+          <span class="preview-label">Preview</span>
+          <div class="shirt-wrap">
+            <img class="shirt-img" src="" data-mirror="main-shirt" alt="Shirt preview" />
+            <div class="crop-indicator" data-mirror-crop></div>
+            <img class="art-overlay" data-mirror-art alt="" />
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn btn-next" id="next-1" onclick="nextStep()" disabled>
+            Next: Pick a color →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Color -->
+      <div class="panel" id="panel-2">
+        <div class="controls">
+          <p class="section-label">Pick your color</p>
+          <div class="color-row" id="color-row">
+            <button class="color-swatch" style="background:#f2e8cc" title="Cream" data-color="cream" data-hex="#f2e8cc" onclick="pickColor(this)"></button>
+            <button class="color-swatch" style="background:#055034" title="Forest Green" data-color="forest" data-hex="#055034" onclick="pickColor(this)"></button>
+            <button class="color-swatch" style="background:#111111" title="Black" data-color="black" data-hex="#111111" onclick="pickColor(this)"></button>
+            <button class="color-swatch" style="background:#e87c1e" title="Orange" data-color="orange" data-hex="#e87c1e" onclick="pickColor(this)"></button>
+            <button class="color-swatch" style="background:#7a1c20" title="Burgundy" data-color="burgundy" data-hex="#7a1c20" onclick="pickColor(this)"></button>
+          </div>
+          <div class="color-name" id="color-label">Select a color above</div>
+        </div>
+        <div class="preview-col">
+          <span class="preview-label">Preview</span>
+          <div class="shirt-wrap">
+            <img class="shirt-img" src="" data-mirror="main-shirt" alt="Shirt preview" />
+            <div class="crop-indicator" data-mirror-crop></div>
+            <img class="art-overlay" data-mirror-art alt="" />
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn btn-next" id="next-2" onclick="nextStep()" disabled>
+            Next: Crop it up →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Crop -->
+      <div class="panel" id="panel-3">
+        <div class="controls">
+          <p class="section-label">Crop it up!</p>
+          <button class="opt-btn" data-group="crop" data-val="none" onclick="pick(this); setCrop('none')">
+            No Cropping <span class="opt-btn-sub">Full length · classic cut</span>
+          </button>
+          <button class="opt-btn" data-group="crop" data-val="cropped" onclick="pick(this); setCrop('cropped')">
+            Cropped <span class="opt-btn-sub">Hits just above the waist</span>
+          </button>
+          <button class="opt-btn" data-group="crop" data-val="xcropped" onclick="pick(this); setCrop('xcropped')">
+            Extra Cropped <span class="opt-btn-sub">Bold short silhouette</span>
+          </button>
+        </div>
+        <div class="preview-col">
+          <span class="preview-label">Preview</span>
+          <div class="shirt-wrap">
+            <img class="shirt-img" src="" data-mirror="main-shirt" alt="Shirt preview" />
+            <div class="crop-indicator" data-mirror-crop></div>
+            <img class="art-overlay" data-mirror-art alt="" />
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn btn-next" id="next-3" onclick="nextStep()" disabled>
+            Next: Make it yours →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Your Art -->
+      <div class="panel" id="panel-4">
+        <div class="controls" style="flex:1; min-width:100%;">
+          <p class="section-label">Make it yours!</p>
+
+          <!-- Tools -->
+          <div class="art-tools">
+            <label class="art-upload-btn">
+              Upload Image
+              <input type="file" id="art-file-input" accept="image/*" onchange="handleArtUpload(this.files[0])" />
+            </label>
+            <button onclick="deleteArt()" class="danger">🗑 Remove Design</button>
+            <button onclick="resetArtPosition()">⟲ Reset Position</button>
+            <span style="font-size:12px; color:var(--text-muted); margin-left:auto;">
+              Drag · Scale · Rotate
+            </span>
+          </div>
+
+          <!-- 2D + 3D workspace -->
+          <div class="art-workspace">
+            <div class="art-canvas-container">
+              <canvas id="fabric-canvas" width="500" height="600"></canvas>
+            </div>
+            <div class="art-3d-container">
+              <div id="three-container"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-row" style="width:100%;">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn btn-next" id="next-4" onclick="nextStep()" disabled>
+            Next: Finishing touches →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 5: Finish -->
+      <div class="panel" id="panel-5">
+        <div class="controls" style="flex:1">
+          <p class="section-label">Finishing touches</p>
+          <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:5px">
+            Name your design
+          </label>
+          <input class="name-input" type="text" id="design-name" placeholder="e.g. Summer Drop v1" oninput="checkName()" />
+          <p class="section-label" style="margin-top:1rem">Your choices</p>
+          <div class="summary-grid" id="summary-grid"></div>
+          <div class="success-banner" id="success-banner">
+            <span style="font-size:18px">✓</span>
+            <p id="success-msg"></p>
+          </div>
+        </div>
+        <div class="preview-col">
+          <span class="preview-label">Final look</span>
+          <div class="shirt-wrap">
+            <img class="shirt-img" src="" data-mirror="main-shirt" alt="Shirt preview" />
+            <div class="crop-indicator" data-mirror-crop></div>
+            <img class="art-overlay" data-mirror-art alt="" />
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn btn-next" id="save-btn" onclick="saveDesign()" disabled>
+            Save to projects
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- === END CREATOR === -->
+
+    <div class="iconrow">
+      <img src="assets/icons/ethically-sourced.png" alt="Ethically Sourced" />
+      <img src="assets/icons/eco.png" alt="Eco Friendly Materials" />
+      <img src="assets/icons/organic.png" alt="Organic Fabrics" />
+      <img src="assets/icons/eco-friendly.png" alt="Eco Production Process" />
+    </div>
+  </div>
+
+<div class="footer">
+  <!-- Column 1: Materials -->
+  <div class="footer-column">
+    <h1>Our Materials</h1>
+    <p>Learn About our cotton</p>
+    <p>Learn About our hemp</p>
+    <p>Learn About our wool</p>
+  </div>
+
+  <!-- Column 2: Ethics -->
+  <div class="footer-column">
+    <h1>Our Ethics</h1>
+    <p>Learn About our cotton</p>
+    <p>Learn About our hemp</p>
+    <p>Learn About our wool</p>
+  </div>
+
+  <!-- Column 3: Legal -->
+  <div class="footer-column">
+    <h1>Our Legal Stuff</h1>
+    <p>Learn About our cotton</p>
+    <p>Learn About our hemp</p>
+    <p>Learn About our wool</p>
+  </div>
+</div>
+
+  <!-- ============================================================ -->
+  <!-- ===== SCRIPTS ===== -->
+  <script>
+    // ========== STATE ==========
+    const S = {
+      step: 0,
+      fit: null,
+      material: null,
+      color: null,
+      colorHex: null,
+      colorName: null,
+      crop: null,
+      artSrc: null,
+    };
+
+    // ========== PATH BUILDER ==========
+    const colorSuffixMap = {
+      cream: 'Canvas',
+      forest: 'forest',
+      black: 'night',
+      orange: 'orange',
+      burgundy: 'wine'
+    };
+
+    function capitalise(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function getShirtPath() {
+      const fit = S.fit || 'boxy';
+      const material = S.material || 'cotton';
+      const color = S.color || 'forest';
+      const fitFolder = fit.toLowerCase();
+      const materialFolder = material.toLowerCase();
+      const colorSuffix = colorSuffixMap[color] || 'forest';
+      let fitPrefix = capitalise(fitFolder);
+      if (color === 'orange') {
+        fitPrefix = fitPrefix.charAt(0).toLowerCase() + fitPrefix.slice(1);
+      }
+      const materialPrefix = capitalise(material);
+      const fileName = `${fitPrefix}${materialPrefix}${colorSuffix}.png`;
+      return `assets/shirticons/${fitFolder}/${materialFolder}/${fileName}`;
+    }
+
+    // ========== SYNC ==========
+    function syncShirt() {
+      const src = getShirtPath();
+      document.querySelectorAll('.shirt-img').forEach(img => {
+        img.onerror = function() {
+          this.onerror = null;
+          this.src = 'assets/shirticons/boxy/cotton/BoxyCottonCanvas.png';
+        };
+        img.src = src;
+      });
+    }
+
+    function syncCrop() {
+      document.querySelectorAll('.crop-indicator').forEach(line => {
+        if (!S.crop || S.crop === 'none') {
+          line.style.display = 'none';
+        } else {
+          line.style.display = 'block';
+          line.style.top = S.crop === 'cropped' ? '72%' : '58%';
+        }
+      });
+      if (window.updateThreeCrop) window.updateThreeCrop(S.crop);
+    }
+
+    function syncAll() {
+      syncShirt();
+      syncCrop();
+    }
+
+    // ========== PICK ==========
+    function pick(btn) {
+      const g = btn.dataset.group;
+      document.querySelectorAll(`[data-group="${g}"]`).forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      S[g] = btn.dataset.val;
+      if (g === 'crop' || g === 'material' || g === 'fit') {
+        syncAll();
+      } else {
+        syncShirt();
+      }
+      checkNext();
+    }
+
+    function pickColor(btn) {
+      document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      S.color = btn.dataset.color;
+      S.colorHex = btn.dataset.hex;
+      S.colorName = btn.title;
+      document.getElementById('color-label').textContent = btn.title;
+      syncShirt();
+      document.getElementById('next-2').disabled = false;
+    }
+
+    function setCrop(val) {
+      S.crop = val;
+      syncCrop();
+      checkNext();
+    }
+
+    // ========== NAVIGATION ==========
+    function checkNext() {
+      const maps = { 0: 'fit', 1: 'material', 3: 'crop' };
+      const stepId = S.step;
+      const btn = document.getElementById(`next-${stepId}`);
+      if (!btn) return;
+      if (stepId === 4) {
+        btn.disabled = !(window.fabricCanvas && window.fabricCanvas.getObjects().length > 1);
+        return;
+      }
+      if (stepId === 2) { btn.disabled = !S.color; return; }
+      if (maps[stepId]) btn.disabled = !S[maps[stepId]];
+    }
+
+    function nextStep() {
+      const old = S.step;
+      if (old >= 5) return;
+      document.querySelectorAll('.step-tab')[old].classList.remove('active');
+      document.querySelectorAll('.step-tab')[old].classList.add('done');
+      document.getElementById(`panel-${old}`).classList.remove('active');
+      S.step++;
+      document.querySelectorAll('.step-tab')[S.step].classList.add('active');
+      document.getElementById(`panel-${S.step}`).classList.add('active');
+      if (S.step === 5) buildSummary();
+      if (S.step === 4) {
+        setTimeout(initArtEditor, 150);
+      }
+    }
+
+    function prevStep() {
+      const old = S.step;
+      if (old <= 0) return;
+      document.querySelectorAll('.step-tab')[old].classList.remove('active');
+      document.getElementById(`panel-${old}`).classList.remove('active');
+      S.step--;
+      document.querySelectorAll('.step-tab')[S.step].classList.remove('done');
+      document.querySelectorAll('.step-tab')[S.step].classList.add('active');
+      document.getElementById(`panel-${S.step}`).classList.add('active');
+    }
+
+    // ========== SUMMARY & SAVE ==========
+    function buildSummary() {
+      const labels = {
+        fit: { boxy: 'Boxy Cropped', casual: 'Casual', sporty: 'Sporty' },
+        material: { cotton: 'Cotton', hemp: 'Hemp', wool: 'Merino Wool' },
+        crop: { none: 'No cropping', cropped: 'Cropped', xcropped: 'Extra Cropped' },
+      };
+      const rows = [
+        { k: 'fit', label: 'Fit' },
+        { k: 'material', label: 'Material' },
+        { k: 'color', label: 'Color', color: true },
+        { k: 'crop', label: 'Crop' },
+      ];
+      document.getElementById('summary-grid').innerHTML = rows.map(r => {
+        let val;
+        if (r.color) {
+          val =
+            `<span class="swatch-dot" style="background:${S.colorHex || '#ccc'}"></span>${S.colorName || '—'}`;
+        } else {
+          val = (labels[r.k] && S[r.k]) ? labels[r.k][S[r.k]] : (S[r.k] || '—');
+        }
+        return `<div class="summary-card"><div class="sk">${r.label}</div><div class="sv">${val}</div></div>`;
+      }).join('');
+    }
+
+    function checkName() {
+      document.getElementById('save-btn').disabled = document.getElementById('design-name').value.trim().length < 2;
+    }
+
+    function saveDesign() {
+      const name = document.getElementById('design-name').value.trim();
+      const banner = document.getElementById('success-banner');
+      document.getElementById('success-msg').textContent =
+        `"${name}" saved to your projects and ready to select for print.`;
+      banner.classList.add('show');
+      const btn = document.getElementById('save-btn');
+      btn.textContent = 'Saved ✓';
+      btn.disabled = true;
+      console.log('Design saved:', { name, ...S });
+    }
+
+    // ================================================================
+    // ===== ART EDITOR with SHIRT-SHAPED 3D GEOMETRY =====
+    // ================================================================
+
+    let fabricCanvas = null;
+    let threeScene = null;
+    let threeTexture = null;
+    let threeShirt = null;
+    let threeCropLine = null;
+    let threeRenderer = null;
+    let threeCamera = null;
+    let threeControls = null;
+    let isArtEditorReady = false;
+
+    function createShirtGeometry() {
+      // Create a t-shirt shape using THREE.Shape
+      const shape = new THREE.Shape();
+      const w = 1.8; // width scale
+      const h = 2.3; // height scale
+
+      // Start at top center (neckline)
+      shape.moveTo(0, 0.92 * h);
+      // Neckline left dip
+      shape.bezierCurveTo(-0.12 * w, 0.92 * h, -0.18 * w, 0.78 * h, -0.28 * w, 0.72 * h);
+      // Left shoulder
+      shape.lineTo(-0.52 * w, 0.62 * h);
+      // Left sleeve
+      shape.lineTo(-0.78 * w, 0.50 * h);
+      shape.lineTo(-0.68 * w, 0.35 * h);
+      // Left body (slightly tapered)
+      shape.lineTo(-0.48 * w, 0.35 * h);
+      shape.lineTo(-0.48 * w, 0.15 * h);
+      // Bottom curve
+      shape.bezierCurveTo(-0.48 * w, -0.08 * h, -0.22 * w, -0.12 * h, 0, -0.12 * h);
+      shape.bezierCurveTo(0.22 * w, -0.12 * h, 0.48 * w, -0.08 * h, 0.48 * w, 0.15 * h);
+      // Right body
+      shape.lineTo(0.48 * w, 0.35 * h);
+      shape.lineTo(0.68 * w, 0.35 * h);
+      // Right sleeve
+      shape.lineTo(0.78 * w, 0.50 * h);
+      shape.lineTo(0.52 * w, 0.62 * h);
+      // Right shoulder
+      shape.lineTo(0.28 * w, 0.72 * h);
+      // Neckline right dip
+      shape.bezierCurveTo(0.18 * w, 0.78 * h, 0.12 * w, 0.92 * h, 0, 0.92 * h);
+      shape.closePath();
+
+      return shape;
+    }
+
+    function initArtEditor() {
+      if (isArtEditorReady) return;
+      const container = document.getElementById('three-container');
+      if (!container) {
+        console.warn('Three container not found');
+        return;
+      }
+      if (container.clientWidth === 0 || container.clientHeight === 0) {
+        console.warn('Three container has zero size, retrying...');
+        setTimeout(initArtEditor, 200);
+        return;
+      }
+
+      // --- Fabric.js 2D canvas ---
+      const canvasEl = document.getElementById('fabric-canvas');
+      fabricCanvas = new fabric.Canvas(canvasEl, {
+        width: 500,
+        height: 600,
+        backgroundColor: '#f9fafb',
+        selection: false,
+      });
+
+      // Draw a shirt outline guide on the 2D canvas
+      const shirtGuide = new fabric.Rect({
+        left: 60,
+        top: 40,
+        width: 380,
+        height: 520,
+        fill: 'transparent',
+        stroke: '#ccc',
+        strokeWidth: 1,
+        strokeDashArray: [4, 4],
+        selectable: false,
+        evented: false,
+      });
+      fabricCanvas.add(shirtGuide);
+
+      // Hint text
+      const hint = new fabric.Text('Upload an image\nto get started', {
+        left: 250,
+        top: 300,
+        fontSize: 20,
+        fill: '#aaa',
+        textAlign: 'center',
+        originX: 'center',
+        originY: 'center',
+        selectable: false,
+        evented: false,
+      });
+      fabricCanvas.add(hint);
+      fabricCanvas.renderAll();
+
+      // --- Three.js 3D preview with shirt shape ---
+      const width = container.clientWidth || 300;
+      const height = container.clientHeight || 450;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf3f4f6);
+
+      const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 100);
+      camera.position.set(0, 1.2, 7.5);
+      camera.lookAt(0, 0.1, 0);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      container.appendChild(renderer.domElement);
+
+      // Controls
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.autoRotate = false;
+      controls.minDistance = 3;
+      controls.maxDistance = 15;
+      controls.target.set(0, 0.1, 0);
+      controls.update();
+
+      // Lights
+      const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambient);
+
+      const key = new THREE.DirectionalLight(0xffeedd, 1.6);
+      key.position.set(4, 6, 5);
+      key.castShadow = true;
+      key.shadow.mapSize.width = 512;
+      key.shadow.mapSize.height = 512;
+      scene.add(key);
+
+      const fill = new THREE.DirectionalLight(0xccddff, 0.5);
+      fill.position.set(-3, 2, -2);
+      scene.add(fill);
+
+      const rim = new THREE.DirectionalLight(0xffffff, 0.3);
+      rim.position.set(0, -3, 6);
+      scene.add(rim);
+
+      // Ground shadow
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, 8),
+        new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.08, transparent: true })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -2.5;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      // ----- SHIRT-SHAPED GEOMETRY -----
+      const shirtShape = createShirtGeometry();
+
+      // Create geometry from shape
+      const geometry = new THREE.ShapeGeometry(shirtShape);
+
+      // Add some subtle 3D curvature by modifying vertices
+      const positions = geometry.attributes.position;
+      const centerX = 0;
+      const centerY = 0;
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        // Add slight Z curvature based on distance from center
+        const dist = Math.sqrt(x * x + y * y);
+        const zCurve = -0.08 * (1 - Math.exp(-dist * 0.6));
+        positions.setZ(i, zCurve);
+      }
+      positions.needsUpdate = true;
+      geometry.computeVertexNormals();
+
+      // Texture from Fabric canvas
+      const texture = new THREE.CanvasTexture(canvasEl);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+
+      const material = new THREE.MeshStandardMaterial({
+        map: texture,
+        roughness: 0.6,
+        metalness: 0.02,
+        side: THREE.DoubleSide,
+        shadowSide: THREE.DoubleSide,
+      });
+
+      const shirt = new THREE.Mesh(geometry, material);
+      shirt.castShadow = true;
+      shirt.receiveShadow = true;
+      shirt.position.y = 0.1;
+      shirt.rotation.x = -0.03;
+      shirt.rotation.z = 0.02;
+      scene.add(shirt);
+
+      // Crop line in 3D (positioned on shirt surface)
+      const cropPoints = [
+        new THREE.Vector3(-1.4, 1.0, 0.0),
+        new THREE.Vector3(1.4, 1.0, 0.0)
+      ];
+      const cropGeo = new THREE.BufferGeometry().setFromPoints(cropPoints);
+      const cropMat = new THREE.LineBasicMaterial({
+        color: 0xffcc33,
+        transparent: true,
+        opacity: 0.9,
+        linewidth: 2,
+      });
+      const cropLine = new THREE.Line(cropGeo, cropMat);
+      cropLine.visible = false;
+      scene.add(cropLine);
+
+      // Store references
+      threeScene = scene;
+      threeTexture = texture;
+      threeShirt = shirt;
+      threeCropLine = cropLine;
+      threeRenderer = renderer;
+      threeCamera = camera;
+      threeControls = controls;
+
+      // Resize
+      function resize() {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        if (w === 0 || h === 0) return;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+      window.addEventListener('resize', resize);
+      const ro = new ResizeObserver(resize);
+      ro.observe(container);
+
+      // Animation
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Expose update functions
+      window.updateThreeTexture = function() {
+        texture.image = canvasEl;
+        texture.needsUpdate = true;
+      };
+
+      window.updateThreeCrop = function(cropVal) {
+        if (!threeCropLine) return;
+        if (!cropVal || cropVal === 'none') {
+          threeCropLine.visible = false;
+        } else {
+          threeCropLine.visible = true;
+          // Position on shirt: cropped = lower, xcropped = higher
+          const yPos = cropVal === 'cropped' ? 0.25 : -0.35;
+          threeCropLine.position.y = yPos;
+        }
+      };
+
+      // Initial crop sync
+      window.updateThreeCrop(S.crop);
+
+      // ---- Fabric event listeners ----
+      fabricCanvas.on('object:modified', function() {
+        window.updateThreeTexture();
+        const nextBtn = document.getElementById('next-4');
+        if (nextBtn) nextBtn.disabled = false;
+      });
+
+      fabricCanvas.on('object:added', function() {
+        const hintObj = fabricCanvas.getObjects().find(o =>
+          o.type === 'text' && o.text === 'Upload an image\nto get started'
+        );
+        if (hintObj) fabricCanvas.remove(hintObj);
+        window.updateThreeTexture();
+        const nextBtn = document.getElementById('next-4');
+        if (nextBtn) nextBtn.disabled = false;
+      });
+
+      fabricCanvas.on('object:removed', function() {
+        window.updateThreeTexture();
+        const nextBtn = document.getElementById('next-4');
+        if (nextBtn) nextBtn.disabled = (fabricCanvas.getObjects().length <= 1);
+      });
+
+      // Restore previously uploaded art
+      if (S.artSrc) {
+        fabric.Image.fromURL(S.artSrc, function(img) {
+          img.scaleToWidth(200);
+          img.set({
+            left: 150,
+            top: 200,
+            angle: 0,
+          });
+          fabricCanvas.add(img);
+          fabricCanvas.setActiveObject(img);
+          fabricCanvas.renderAll();
+          window.updateThreeTexture();
+          const nextBtn = document.getElementById('next-4');
+          if (nextBtn) nextBtn.disabled = false;
+        });
+      }
+
+      isArtEditorReady = true;
+      window.fabricCanvas = fabricCanvas;
+      console.log('Art editor initialized with shirt geometry');
+      window.updateThreeTexture();
+      setTimeout(resize, 100);
+    }
+
+    // ===== ART TOOLS =====
+
+    function handleArtUpload(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        S.artSrc = e.target.result;
+        if (fabricCanvas) {
+          fabric.Image.fromURL(S.artSrc, function(img) {
+            img.scaleToWidth(200);
+            img.set({
+              left: 150,
+              top: 200,
+              angle: 0,
+            });
+            fabricCanvas.add(img);
+            fabricCanvas.setActiveObject(img);
+            fabricCanvas.renderAll();
+            window.updateThreeTexture();
+            const nextBtn = document.getElementById('next-4');
+            if (nextBtn) nextBtn.disabled = false;
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function deleteArt() {
+      if (!fabricCanvas) return;
+      const objects = fabricCanvas.getObjects();
+      const toRemove = objects.filter(o => o.type !== 'rect' && o.type !== 'text');
+      toRemove.forEach(o => fabricCanvas.remove(o));
+      fabricCanvas.renderAll();
+      window.updateThreeTexture();
+      const nextBtn = document.getElementById('next-4');
+      if (nextBtn) nextBtn.disabled = true;
+      const hasHint = fabricCanvas.getObjects().some(o =>
+        o.type === 'text' && o.text === 'Upload an image\nto get started'
+      );
+      if (!hasHint && fabricCanvas.getObjects().length <= 1) {
+        const hint = new fabric.Text('Upload an image\nto get started', {
+          left: 250,
+          top: 300,
+          fontSize: 20,
+          fill: '#aaa',
+          textAlign: 'center',
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+        });
+        fabricCanvas.add(hint);
+      }
+    }
+
+    function resetArtPosition() {
+      if (!fabricCanvas) return;
+      const active = fabricCanvas.getActiveObject();
+      if (active) {
+        active.set({
+          left: 150,
+          top: 200,
+          angle: 0,
+          scaleX: 1,
+          scaleY: 1,
+        });
+        fabricCanvas.renderAll();
+        window.updateThreeTexture();
+      }
+    }
+
+    // ===== INIT =====
+    window.addEventListener('load', function() {
+      S.fit = 'boxy';
+      S.material = 'cotton';
+      S.color = 'forest';
+      S.crop = 'none';
+      S.colorName = 'Forest Green';
+      S.colorHex = '#055034';
+      document.getElementById('color-label').textContent = 'Forest Green';
+      document.querySelector('[data-group="fit"][data-val="boxy"]')?.classList.add('selected');
+      document.querySelector('[data-group="material"][data-val="cotton"]')?.classList.add('selected');
+      document.querySelector('[data-group="crop"][data-val="none"]')?.classList.add('selected');
+      syncAll();
+      document.getElementById('next-0').disabled = false;
+    });
+
+    // Expose globals
+    window.pick = pick;
+    window.pickColor = pickColor;
+    window.setCrop = setCrop;
+    window.nextStep = nextStep;
+    window.prevStep = prevStep;
+    window.handleArtUpload = handleArtUpload;
+    window.deleteArt = deleteArt;
+    window.resetArtPosition = resetArtPosition;
+    window.checkName = checkName;
+    window.saveDesign = saveDesign;
+    window.buildSummary = buildSummary;
+    window.initArtEditor = initArtEditor;
+    window.fabricCanvas = fabricCanvas;
+    window.updateThreeTexture = function() {};
+
+    console.log('🌱 Tee-Minus creator loaded with shirt-shaped 3D preview.');
+  </script>
+</body>
+</html>

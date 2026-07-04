@@ -1,0 +1,410 @@
+@font-face { 
+    font-family: 'NimbusRoman'; 
+    src: url('fonts/NimbusRomNo9L-Med.otf') format('opentype'); 
+    font-weight: normal; 
+    font-style: normal; 
+} 
+
+/* ==========================================================================
+   1. Dynamic Scalable Reset
+   ========================================================================== */
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+} 
+
+html, body {
+    width: 100%;
+    overflow-x: hidden; /* Prevents unwanted horizontal scrollbars while scaling */
+    background-color: antiquewhite; 
+}
+
+/* ==========================================================================
+   2. Fluid Navbar (Scales smoothly down to small screens)
+   ========================================================================== */
+.navbar { 
+    background-color: black; 
+    width: 100%; 
+    padding: 1.2vw 2vw; /* Uses viewport scaling instead of fixed pixels */
+    display: flex; 
+    justify-content: flex-end; 
+} 
+
+.nav-buttons { 
+    display: flex; 
+    align-items: center; 
+    width: 100%; 
+    gap: 1.2vw; /* Dynamic spacing between buttons */
+} 
+
+.nav-btn { 
+    background-color: black; 
+    color: white; 
+    border: 0.15vw solid white; /* Border scales with screen size */
+    border-radius: 0; 
+    padding: 0.8vw 1.6vw; 
+    font-size: 2.1vw; /* Text scales perfectly with screen size */
+    font-weight: bold; 
+    cursor: pointer; 
+    text-decoration: none; 
+    display: inline-block;
+    transition: all 0.2s ease; 
+    white-space: nowrap; /* Prevents button text from wrapping */
+} 
+
+.nav-btn:hover { 
+    background-color: white; 
+    color: black; 
+} 
+
+.lg-nav-btn { 
+    background-color: black; 
+    color: white; 
+    border: 0.15vw solid white; 
+    border-radius: 0; 
+    padding: 0.8vw 4vw; 
+    font-size: 2.1vw; 
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+    margin-left: auto; /* Keeps 'Create' pinned safely on the far right */
+    white-space: nowrap;
+    text-decoration: none;
+} 
+
+.lg-nav-btn:hover { 
+    background-color: white; 
+    color: black; 
+} 
+
+/* ==========================================================================
+   3. Fluid Top Banner & Hero Containers
+   ========================================================================== */
+.toplogo, .toplogo2 { 
+    display: grid; 
+    place-items: center; 
+    height: 15vh; 
+    background-color: #055034; 
+    width: 100%; 
+} 
+
+.toplogo img, .toplogo2 img { 
+    max-height: 80%; 
+    object-fit: contain; 
+} 
+
+/* Unified Hero Banner Area */
+.hero-container {
+    /* Creates a hard cut background: 75% dark green, 25% transparent */
+    background: linear-gradient(to bottom, #055034 76.735%, transparent 75%);
+    
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 20px 0px 20px; 
+}
+
+.hero-logo { 
+    width: 80%; /* Relative scaling instead of rigid pixels */
+    max-width: 450px; 
+    min-width: 280px; /* Keeps it from disappearing completely on mobile */
+    height: auto; 
+    object-fit: contain; 
+    margin-bottom: 2.5vw; 
+} 
+
+/* Forces the town illustration to line up perfectly below the text */
+.hero-illustration {
+    width: 100%;
+    max-width: 500px; 
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.hero-container2 {
+    background: #055034; 
+    width: 100%; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: flex-start; 
+    padding: 4vw 2vw 0vw 2vw; /* Scalable inner padding */
+}
+
+.hero-illustration2 { 
+    width: 50%;
+    max-width: 600px; 
+    height: auto; 
+    object-fit: contain; 
+    display: block; 
+    margin: 0 auto; /* Forces the item to center horizontally */
+
+} 
+
+/* ==========================================================================
+4. Un-wrappable Text & Mission Settings
+   ========================================================================== */
+.mission-section { 
+    width: 100%; 
+    margin: 4vw auto; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    text-align: center; 
+    padding: 0vw 5vw; 
+    font-family: 'NimbusRoman', serif; 
+} 
+
+.mission-section h1 { 
+    width: 100%; 
+    display: inline-block;
+    text-align: center; 
+    font-family: 'NimbusRoman', serif; 
+    font-size: 3.8vw; /* Fluid font sizing based entirely on window width */
+    white-space: nowrap; /* FORCES text to stay exactly on one line */
+    color: #000000;
+    margin-bottom: 1.5vw;
+} 
+
+.mission-section h2 {
+    font-family: 'NimbusRoman', serif;
+    font-size: 2vw; /* Fluid scaling paragraph header */
+    font-weight: 500;
+    line-height: 1.4;
+    color: #000000;
+    max-width: 85%;
+}
+
+.mission-text { 
+    font-size: 1.5vw; 
+    line-height: 1.5; 
+    margin-bottom: 2vw; 
+    font-family: 'Courier New', Courier, monospace; 
+    font-weight: bold;
+} 
+
+/* ==========================================================================
+   5. Proportionate Icon Row
+   ========================================================================== */
+.iconrow { 
+    display: flex; 
+    flex-direction: row; 
+    justify-content: center; 
+    align-items: center; 
+    flex-wrap: nowrap; /* Prevents icons from dropping below each other */
+    gap: 2.5vw; 
+    width: 100%; 
+    max-width: 500px; 
+    margin-top: 2vw;
+} 
+
+.iconrow img { 
+    width: 6vw; /* Icons grow and shrink precisely with screen sizing */
+    max-width: 65px; 
+    height: auto; 
+    object-fit: contain; 
+}
+
+/* ==========================================================================
+   6. Dynamic T-Shirt Creator Workspace (Fluid & Un-wrappable)
+   ========================================================================== */
+.creator-section {
+    width: 100%;
+    background-color: antiquewhite; /* Contrast block separating sections */
+    padding: 5vw 4vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.creator-title {
+    font-family: 'NimbusRoman', serif;
+    font-size: 3.5vw;
+    color: rgb(0, 0, 0);
+    margin-bottom: 4vw;
+    white-space: nowrap;
+}
+
+/* Two-column dashboard setup that forces side-by-side scaling down */
+.creator-workspace {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    flex-wrap: nowrap; /* Locks side-by-side workspace split */
+    width: 100%;
+    max-width: 1100px;
+    gap: 4vw;
+}
+
+/* Control Settings Sidebar Panel */
+.control-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: an;
+    border: 0.15vw solid rgb(0, 0, 0);
+    padding: 3vw;
+}
+
+.control-group {
+    margin-bottom: 2.2vw;
+}
+
+.control-group label {
+    display: block;
+    color: antiquewhite;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    font-size: 1.3vw;
+    margin-bottom: 1vw;
+    text-transform: uppercase;
+}
+
+/* Color Circle Switcher Row */
+.color-options {
+    display: flex;
+    gap: 1vw;
+}
+
+.color-dot {
+    width: 2.5vw;
+    height: 2.5vw;
+    border-radius: 50%;
+    border: 0.15vw solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.color-dot:hover {
+    transform: scale(1.15);
+}
+
+.color-dot.active {
+    border-color: white;
+}
+
+/* Selector rows using fluid sizing */
+.selector-row {
+    display: flex;
+    gap: 0.8vw;
+    flex-wrap: nowrap;
+}
+
+.select-btn {
+    flex: 1;
+    background: transparent;
+    color: white;
+    border: 0.1vw solid #555555;
+    padding: 0.8vw;
+    font-size: 1.1vw;
+    font-family: 'Courier New', Courier, monospace;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.select-btn:hover, .select-btn.active {
+    border-color: white;
+    background: white;
+    color: black;
+}
+
+/* Main Action Prompt Button */
+.action-btn {
+    width: 100%;
+    background-color: #055034;
+    color: white;
+    border: none;
+    padding: 1vw;
+    font-size: 1.4vw;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 1vw;
+    transition: background-color 0.2s ease;
+}
+
+.action-btn:hover {
+    background-color: #08754c;
+}
+
+/* Interactive Canvas Preview Panel */
+.preview-panel {
+    flex: 1;
+    background: antiquewhite;
+    border: 0.5vw solid rgb(0, 0, 0);
+    display: grid;
+    place-items: center;
+    padding: 2vw;
+}
+
+/* The T-Shirt Base Mockup (Uses CSS shapes as a fast asset placeholder) */
+.shirt-mockup {
+    width: 22vw;
+    height: 24vw;
+    background-color: #055034; /* Dynamically modified background color */
+    border-radius: 1vw 1vw 4vw 4vw;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+/* Absolute simulated art canvas bounding box overlay */
+.graphic-canvas {
+    position: absolute;
+    top: 5vw;
+    width: 12vw;
+    height: 12vw;
+    border: 0.1vw dashed rgba(255, 255, 255, 0.4);
+    display: grid;
+    place-items: center;
+}
+
+.graphic-canvas span {
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1vw;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;          /* wraps on small screens */
+  justify-content: space-around;  /* or space-evenly */
+  gap: 2rem;
+  padding: 2rem 1rem;
+  background: #000000;
+  border-top: 1px solid #ddd;
+}
+
+.footer-column {
+  flex: 1 1 200px;          /* each column takes equal space, min 200px */
+  min-width: 150px;
+}
+
+.footer-column h1 {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+}
+
+.footer-column p {
+  font-family:Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 0.9rem;
+  color: #ffffff;
+  margin: 0.3rem 0;
+  cursor: pointer;
+}
+
+.footer-column p:hover {
+  color: #055034;
+  text-decoration: underline;
+}
