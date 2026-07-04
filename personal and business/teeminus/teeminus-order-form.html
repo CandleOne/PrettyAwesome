@@ -567,53 +567,6 @@ select.inp {
 }
 .footer-column p:hover { color: #055034; text-decoration: underline; }
 
-/* ── DESIGN SLOTS ──────────────────────────────────────────────── */
-.design-slot { margin-bottom: .5vw; }
-.slot-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: .8vw;
-}
-.slot-label {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 1vw;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  color: #055034;
-}
-.slot-remove-btn {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: .8vw;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  background: none;
-  border: 0.12vw solid #8b0000;
-  color: #8b0000;
-  padding: .3vw .7vw;
-  cursor: pointer;
-  transition: background .15s, color .15s;
-}
-.slot-remove-btn:hover { background: #8b0000; color: antiquewhite; }
-.add-design-btn {
-  width: 100%;
-  margin-top: 1.2vw;
-  padding: 1vw;
-  background: transparent;
-  border: 0.15vw dashed #055034;
-  color: #055034;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 1vw;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  cursor: pointer;
-  transition: background .15s, color .15s;
-}
-.add-design-btn:hover { background: #055034; color: antiquewhite; }
-
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .page-header h1 { font-size: 7vw; white-space: normal; }
@@ -728,6 +681,16 @@ select.inp {
           <input id="phone" class="inp" type="tel" placeholder="(555) 000-0000" required />
           <span class="err-msg" id="err-phone">A phone number is required.</span>
         </div>
+        <div class="field" style="grid-column:1/-1">
+          <label for="shirt-color">Shirt color <span class="req">*</span></label>
+          <select id="shirt-color" class="inp" required>
+            <option value="">— Select —</option>
+            <option>White</option><option>Black</option><option>Navy</option>
+            <option>Royal Blue</option><option>Red</option><option>Forest Green</option>
+            <option>Gold</option><option>Ash Grey</option><option>Pink</option><option>Purple</option>
+          </select>
+          <span class="err-msg" id="err-shirt-color">Choose a shirt color.</span>
+        </div>
       </div>
     </div>
   </div>
@@ -748,7 +711,33 @@ select.inp {
         <div class="file-chosen" id="file-chosen-name"><span id="chosen-name"></span></div>
       </div>
       <span class="err-msg" id="err-file" style="margin-top:.5vw"></span>
+
+      <div class="field" style="margin-top:1.5vw">
+        <label for="placement">Design placement <span class="req">*</span></label>
+        <select id="placement" class="inp" required>
+          <option value="">— Select —</option>
+          <option>Front Chest</option><option>Full Front</option><option>Upper Back</option>
+          <option>Full Back</option><option>Left Sleeve</option><option>Right Sleeve</option>
+        </select>
+        <span class="err-msg" id="err-placement">Choose a placement.</span>
+      </div>
     </div>
+  </div>
+
+  <div style="text-align:center; margin-bottom:2vw" id="add-design-wrap">
+    <button type="button" id="add-design-btn" onclick="addDesignBlock()" style="
+      font-family:'Courier New',Courier,monospace;
+      font-size:1.1vw;
+      font-weight:bold;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      padding:.7vw 2.2vw;
+      border:0.15vw solid black;
+      background:transparent;
+      color:black;
+      cursor:pointer;
+      transition:border-color .15s,background .15s,color .15s;
+    " onmouseover="this.style.background='black';this.style.color='antiquewhite'" onmouseout="this.style.background='transparent';this.style.color='black'">+ Add another design</button>
   </div>
 
   <!-- ③ ORDER DETAILS ─────────────────────────────────────────────── -->
@@ -756,7 +745,7 @@ select.inp {
     <div class="section-head">
       <span class="section-num">03</span>
       <h2>Order details</h2>
-      <p>Sizes, colors, placement, dimensions</p>
+      <p>Quantities &amp; sizes</p>
     </div>
     <div class="section-body">
 
@@ -780,77 +769,6 @@ select.inp {
         <span class="err-msg" id="err-qty">At least 1 piece required.</span>
       </div>
 
-      <hr class="rule" />
-
-      <div class="field-grid cols-2" style="margin-bottom:1.5vw">
-        <div class="field">
-          <label for="shirt-color">Shirt color <span class="req">*</span></label>
-          <select id="shirt-color" class="inp" required>
-            <option value="">— Select —</option>
-            <option>White</option><option>Black</option><option>Navy</option>
-            <option>Royal Blue</option><option>Red</option><option>Forest Green</option>
-            <option>Gold</option><option>Ash Grey</option><option>Pink</option><option>Purple</option>
-          </select>
-          <span class="err-msg" id="err-shirt-color">Choose a shirt color.</span>
-        </div>
-        <div class="field">
-          <label for="placement">Design placement <span class="req">*</span></label>
-          <select id="placement" class="inp" required>
-            <option value="">— Select —</option>
-            <option>Front Chest</option><option>Full Front</option><option>Upper Back</option>
-            <option>Full Back</option><option>Left Sleeve</option><option>Right Sleeve</option>
-          </select>
-          <span class="err-msg" id="err-placement">Choose a placement.</span>
-        </div>
-      </div>
-
-      <hr class="rule" />
-
-      <!-- Vinyl colors -->
-      <div class="field" style="margin-bottom:1.5vw">
-        <label>Vinyl color(s) <span class="req">*</span></label>
-        <div class="hint">Select all that apply to your design.</div>
-        <div class="vinyl-grid" id="vinyl-chips"></div>
-        <span class="err-msg" id="err-vinyl">Select at least one vinyl color.</span>
-      </div>
-
-      <hr class="rule" />
-
-      <!-- Single / Multi -->
-      <div class="field" style="margin-bottom:1.5vw">
-        <label>Color complexity <span class="req">*</span></label>
-        <div class="radio-group" id="color-complexity">
-          <label class="radio-pill"><input type="radio" name="color-complexity" value="single" />Single color</label>
-          <label class="radio-pill"><input type="radio" name="color-complexity" value="multi" />Multi-color</label>
-        </div>
-        <span class="err-msg" id="err-complexity">Select single or multi-color.</span>
-        <div class="conditional" id="cond-multicolor">
-          <div class="field">
-            <label for="color-mapping">Color mapping <span class="req">*</span></label>
-            <textarea id="color-mapping" class="inp" placeholder="e.g., Logo text = White, Star icon = Gold, Background = Navy" rows="3"></textarea>
-            <span class="err-msg" id="err-color-mapping">Describe which part gets which color.</span>
-          </div>
-        </div>
-      </div>
-
-      <hr class="rule" />
-
-      <!-- Print dimensions -->
-      <div class="field">
-        <label>Print dimensions</label>
-        <div class="hint warn">↑ Larger sizes may affect final pricing.</div>
-        <div class="dim-row" style="margin-top:.7vw">
-          <div class="field">
-            <label for="dim-w" style="text-transform:none; font-weight:normal; font-size:.9vw; letter-spacing:0">Width (inches)</label>
-            <input id="dim-w" class="inp" type="number" min="1" max="16" step="0.5" placeholder="e.g. 10" />
-          </div>
-          <div class="dim-sep">×</div>
-          <div class="field">
-            <label for="dim-h" style="text-transform:none; font-weight:normal; font-size:.9vw; letter-spacing:0">Height (inches)</label>
-            <input id="dim-h" class="inp" type="number" min="1" max="16" step="0.5" placeholder="e.g. 8" />
-          </div>
-        </div>
-      </div>
 
     </div>
   </div>
@@ -953,37 +871,7 @@ select.inp {
 </footer>
 
 <script>
-/* ── VINYL COLORS ───────────────────────────────────────────────── */
-const VINYL = [
-  {name:'White',      hex:'#ffffff'},
-  {name:'Black',      hex:'#111111'},
-  {name:'Red',        hex:'#dc2626'},
-  {name:'Navy',       hex:'#1e3a5f'},
-  {name:'Gold',       hex:'#f59e0b'},
-  {name:'Silver',     hex:'#9ca3af'},
-  {name:'Neon Yellow',hex:'#ecff33'},
-  {name:'Orange',     hex:'#ea580c'},
-  {name:'Royal Blue', hex:'#2563eb'},
-];
-const vinylGrid = document.getElementById('vinyl-chips');
-VINYL.forEach(c => {
-  const lbl = document.createElement('label');
-  lbl.className = 'vinyl-chip';
-  lbl.innerHTML = `<input type="checkbox" name="vinyl-color" value="${c.name}" />
-    <span class="swatch" style="background:${c.hex};${c.hex==='#ffffff'?'border:1px solid #aaa;':''}"></span>${c.name}`;
-  lbl.querySelector('input').addEventListener('change', () => {
-    lbl.classList.toggle('checked', lbl.querySelector('input').checked);
-    clearErr('err-vinyl');
-  });
-  vinylGrid.appendChild(lbl);
-});
 
-/* ── UTILITY ────────────────────────────────────────────────────── */
-function addBizDays(date, n) {
-  const d = new Date(date); let added = 0;
-  while (added < n) { d.setDate(d.getDate()+1); const day=d.getDay(); if(day!==0&&day!==6) added++; }
-  return d;
-}
 
 /* ── SIZE TOTAL ─────────────────────────────────────────────────── */
 const sizeInputs = document.querySelectorAll('[data-size]');
@@ -1005,7 +893,7 @@ document.getElementById('delivery-group').addEventListener('change', e => {
   clearErr('err-delivery');
 });
 
-/* ── DESIGN SLOTS ────────────────────────────────────────────────── */
+/* ── FILE UPLOAD ────────────────────────────────────────────────── */
 const fileInput = document.getElementById('design-file');
 const zone = document.getElementById('upload-zone');
 const fileChosenEl = document.getElementById('file-chosen-name');
@@ -1057,12 +945,9 @@ function validate() {
   if (!document.getElementById('project-name').value.trim()) { showErrEl('err-project-name'); ok=false; } else clearErr('err-project-name');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('email').value.trim())) { showErrEl('err-email'); ok=false; } else clearErr('err-email');
   if (!document.getElementById('phone').value.trim()) { showErrEl('err-phone'); ok=false; } else clearErr('err-phone');
-  if (!document.getElementById('shirt-color').value) { showErrEl('err-shirt-color'); ok=false; } else clearErr('err-shirt-color');
-  document.querySelectorAll('.design-slot').forEach(slot => {
-    const n = slot.dataset.slot;
-    if (!document.getElementById(`placement-${n}`).value) { showErrEl(`err-placement-${n}`); ok=false; } else clearErr(`err-placement-${n}`);
-  });
   if ((parseInt(totalEl.textContent)||0) < 1) { showErrEl('err-qty'); ok=false; } else clearErr('err-qty');
+  if (!document.getElementById('shirt-color').value) { showErrEl('err-shirt-color'); ok=false; } else clearErr('err-shirt-color');
+  if (!document.getElementById('placement').value) { showErrEl('err-placement'); ok=false; } else clearErr('err-placement');
   const dlv = document.querySelector('input[name="delivery"]:checked');
   if (!dlv) { showErrEl('err-delivery'); ok=false; } else {
     clearErr('err-delivery');
@@ -1077,17 +962,10 @@ function collect() {
   const sizes = {};
   sizeInputs.forEach(i => { sizes[i.id.replace('sz-','').toUpperCase()] = parseInt(i.value)||0; });
   const dlv = document.querySelector('input[name="delivery"]:checked')?.value;
-  const designs = [...document.querySelectorAll('.design-slot')].map(slot => {
-    const n = slot.dataset.slot;
-    return { slot: Number(n), placement: document.getElementById(`placement-${n}`).value, fileName: document.getElementById(`design-file-${n}`)?.files[0]?.name || null };
-  });
   return {
     projectName: document.getElementById('project-name').value.trim(),
     client:{ name:document.getElementById('name').value.trim(), email:document.getElementById('email').value.trim(), phone:document.getElementById('phone').value.trim() },
-    shirtColor: document.getElementById('shirt-color').value,
-    designs,
-    quantities: sizes,
-    totalPieces: parseInt(totalEl.textContent)||0,
+    design:{ fileName:fileInput.files[0]?.name||null, quantities:sizes, totalPieces:parseInt(totalEl.textContent)||0, shirtColor:document.getElementById('shirt-color').value, placement:document.getElementById('placement').value },
     logistics:{ rushOrder:document.getElementById('rush-check').checked, delivery:dlv, shippingAddress:dlv==='shipping'?document.getElementById('ship-address').value.trim():null },
     context:document.getElementById('context').value.trim()||null,
     proofApprovalAcknowledged:true,
@@ -1139,10 +1017,6 @@ function autofillForm() {
   document.getElementById('email').value        = 'jane@example.com';
   document.getElementById('phone').value        = '(555) 123-4567';
 
-  // Section 02 — Design(s)
-  document.getElementById('shirt-color').value  = 'Black';
-  document.getElementById('placement-1').value  = 'Full Front';
-
   // Section 03 — Quantities
   document.getElementById('sz-xs').value  = '0';
   document.getElementById('sz-s').value   = '10';
@@ -1152,6 +1026,9 @@ function autofillForm() {
   document.getElementById('sz-2xl').value = '2';
   document.getElementById('sz-3xl').value = '0';
   updateTotal();
+
+  document.getElementById('shirt-color').value = 'Black';
+  document.getElementById('placement').value   = 'Full Front';
 
   // Section 04 — Logistics
   const shipRadio = document.querySelector('input[name="delivery"][value="shipping"]');
@@ -1170,6 +1047,68 @@ function autofillForm() {
   document.querySelectorAll('.inp.error-field').forEach(el => el.classList.remove('error-field'));
 }
 
+/* ── MULTI-DESIGN ───────────────────────────────────────────────── */
+let designCount = 1;
+
+function addDesignBlock() {
+  designCount++;
+  const id = designCount;
+  const card = document.createElement('div');
+  card.className = 'section-card';
+  card.id = `design-block-${id}`;
+  card.innerHTML = `
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2>Design file #${id}</h2>
+      <p style="margin-left:auto">
+        <button type="button" onclick="removeDesignBlock(${id})" style="background:transparent;border:none;color:rgba(255,255,255,0.5);font-family:'Courier New',Courier,monospace;font-size:.9vw;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;padding:0;">✕ Remove</button>
+      </p>
+    </div>
+    <div class="section-body">
+      <div class="upload-zone" id="upload-zone-${id}">
+        <input type="file" id="design-file-${id}" accept=".ai,.eps,.svg,.png,.pdf" />
+        <div class="upload-icon">↑</div>
+        <div class="upload-label">Drop file here or click to browse</div>
+        <div class="upload-sub">.ai · .eps · .svg · .png · .pdf — 10 MB max</div>
+        <div class="file-chosen" id="file-chosen-name-${id}"><span id="chosen-name-${id}"></span></div>
+      </div>
+      <span class="err-msg" id="err-file-${id}" style="margin-top:.5vw"></span>
+      <div class="field" style="margin-top:1.5vw">
+        <label for="placement-${id}">Design placement <span class="req">*</span></label>
+        <select id="placement-${id}" class="inp">
+          <option value="">— Select —</option>
+          <option>Front Chest</option><option>Full Front</option><option>Upper Back</option>
+          <option>Full Back</option><option>Left Sleeve</option><option>Right Sleeve</option>
+        </select>
+      </div>
+    </div>`;
+
+  const addWrap = document.getElementById('add-design-wrap');
+  addWrap.parentElement.insertBefore(card, addWrap);
+
+  const fi = document.getElementById(`design-file-${id}`);
+  const zn = document.getElementById(`upload-zone-${id}`);
+  const fc = document.getElementById(`file-chosen-name-${id}`);
+  const cn = document.getElementById(`chosen-name-${id}`);
+
+  fi.addEventListener('change', () => {
+    const file = fi.files[0]; if (!file) return;
+    if (file.size > 10*1024*1024) { showErr(`err-file-${id}`, 'File too large. Max 10 MB.'); fi.value=''; fc.style.display='none'; return; }
+    cn.textContent = file.name; fc.style.display = 'block';
+  });
+  zn.addEventListener('dragover', e => { e.preventDefault(); zn.classList.add('dragover'); });
+  zn.addEventListener('dragleave', () => zn.classList.remove('dragover'));
+  zn.addEventListener('drop', e => {
+    e.preventDefault(); zn.classList.remove('dragover');
+    if (e.dataTransfer.files.length) { fi.files = e.dataTransfer.files; fi.dispatchEvent(new Event('change')); }
+  });
+}
+
+function removeDesignBlock(id) {
+  const block = document.getElementById(`design-block-${id}`);
+  if (block) block.remove();
+}
+
 /* ── SUBMIT ─────────────────────────────────────────────────────── */
 document.getElementById('quote-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -1185,25 +1124,20 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
   submitButton.disabled = true;
 
   try {
-    // Step 1: upload design files to Cloudinary
-    const slots = [...document.querySelectorAll('.design-slot')];
-    for (let i = 0; i < slots.length; i++) {
-      const n = slots[i].dataset.slot;
-      const fileInp = document.getElementById(`design-file-${n}`);
-      const file = fileInp?.files[0];
-      if (file) {
-        submitButton.textContent = slots.length > 1 ? `Uploading design ${i+1} of ${slots.length}…` : 'Uploading design…';
-        const b64 = await fileToBase64(file);
-        const uploadResp = await fetch('http://127.0.0.1:8000/upload-design', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ project_name: payload.projectName, filename: file.name, mimetype: file.type, data: b64 })
-        });
-        const uploadResult = await uploadResp.json();
-        if (!uploadResp.ok || !uploadResult.ok) throw new Error(uploadResult.error || 'Design upload failed');
-        payload.designs[i].cloudinaryUrl = uploadResult.url;
-        console.log(`Design ${i+1} uploaded:`, uploadResult.url);
-      }
+    // Step 1: upload design file to Cloudinary (if one was selected)
+    const file = fileInput.files[0];
+    if (file) {
+      submitButton.textContent = 'Uploading design…';
+      const b64 = await fileToBase64(file);
+      const uploadResp = await fetch('http://127.0.0.1:8000/upload-design', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_name: payload.projectName, filename: file.name, mimetype: file.type, data: b64 })
+      });
+      const uploadResult = await uploadResp.json();
+      if (!uploadResp.ok || !uploadResult.ok) throw new Error(uploadResult.error || 'Design upload failed');
+      payload.design.cloudinaryUrl = uploadResult.url;
+      console.log('Design uploaded:', uploadResult.url);
     }
 
     // Step 2: save quote PDF
@@ -1233,12 +1167,10 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
 function dismissSuccess() {
   document.getElementById('success-screen').classList.remove('show');
   document.getElementById('quote-form').reset();
+  document.querySelectorAll('.vinyl-chip').forEach(c=>c.classList.remove('checked'));
   totalEl.textContent='0';
   document.querySelectorAll('.conditional.open').forEach(c=>c.classList.remove('open'));
-  const container = document.getElementById('design-slots');
-  container.innerHTML = '';
-  slotCounter = 0;
-  addDesignSlot();
+  fileChosenEl.style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 </script>
