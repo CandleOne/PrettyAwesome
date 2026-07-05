@@ -812,10 +812,38 @@ select.inp {
     </div>
   </div>
 
-  <!-- ⑤ ADDITIONAL CONTEXT ─────────────────────────────────────────── -->
+  <!-- ⑤ BILLING PROFILE ───────────────────────────────────────────── -->
   <div class="section-card">
     <div class="section-head">
       <span class="section-num">05</span>
+      <h2>Billing profile</h2>
+      <p>Optional saved payment method</p>
+    </div>
+    <div class="section-body">
+      <div class="field-grid cols-2">
+        <div class="field" style="grid-column:1/-1">
+          <label for="saved-payment-method">Saved payment method</label>
+          <select id="saved-payment-method" class="inp" disabled>
+            <option value="">No saved payment method selected</option>
+          </select>
+          <p class="hint" id="billing-profile-note">Sign in and save a card on the Payments page if you want a billing method attached to this quote request.</p>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label class="check-row legal">
+            <input type="checkbox" id="billing-consent" />
+            <span class="check-label">
+              I authorize Tee-Minus to reference the selected saved payment method for invoicing or an agreed deposit only after I approve the quote and proof.
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ ADDITIONAL CONTEXT ─────────────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-num">06</span>
       <h2>Additional context</h2>
       <p>Optional — helps us serve you better</p>
     </div>
@@ -830,7 +858,7 @@ select.inp {
   <!-- ⑥ PROOF APPROVAL ─────────────────────────────────────────────── -->
   <div class="section-card" style="border-color:#055034; border-width:0.2vw">
     <div class="section-head" style="background:#055034">
-      <span class="section-num" style="color:antiquewhite; opacity:.65">06</span>
+      <span class="section-num" style="color:antiquewhite; opacity:.65">07</span>
       <h2>Proof approval</h2>
       <p>Production never starts without your sign-off</p>
     </div>
@@ -900,6 +928,10 @@ const fileInput = document.getElementById('design-file');
 const zone = document.getElementById('upload-zone');
 const fileChosenEl = document.getElementById('file-chosen-name');
 const chosenNameEl = document.getElementById('chosen-name');
+const savedPaymentSelect = document.getElementById('saved-payment-method');
+const billingProfileNote = document.getElementById('billing-profile-note');
+const billingConsentInput = document.getElementById('billing-consent');
+const API_BASE = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
 function handleFile(file) {
   clearErr('err-file');
   if (!file) return;
@@ -940,6 +972,120 @@ document.querySelectorAll('.inp').forEach(inp => {
   }));
 });
 
+function fetchJson(path, options) {
+  return fetch(`${API_BASE}${path}`, options).then(async (response) => {
+    const result = await response.json();
+    if (!response.ok || result.ok === false) {
+      throw new Error(result.error || `Request failed: ${response.status}`);
+    }
+    return result;
+  });
+}
+
+function buildPaymentOptionLabel(method) {
+  const brand = String(method.brand || 'Card').replace(/(^|\s)\S/g, (char) => char.toUpperCase());
+  const expMonth = method.expMonth ? String(method.expMonth).padStart(2, '0') : '--';
+  const expYear = method.expYear || '----';
+  return `${brand} ending in ${method.last4 || '----'} · exp ${expMonth}/${expYear}`;
+}
+
+function getQuotePaymentMethods() {
+  const account = window.TMAuth && window.TMAuth.getCurrentAccount ? window.TMAuth.getCurrentAccount() : null;
+  const data = window.TMAuth && window.TMAuth.getCurrentAccountData ? window.TMAuth.getCurrentAccountData() : null;
+  if (!account || !data) {
+    return [];
+  }
+  return (data.paymentMethods || []).slice();
+}
+
+function renderSavedPaymentOptions() {
+  const methods = getQuotePaymentMethods().sort((a, b) => {
+    if (a.isDefault && !b.isDefault) return -1;
+    if (!a.isDefault && b.isDefault) return 1;
+    return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+  });
+  const currentValue = savedPaymentSelect.value;
+
+  savedPaymentSelect.innerHTML = '<option value="">No saved payment method selected</option>';
+  methods.forEach((method) => {
+    const option = document.createElement('option');
+    option.value = method.id || '';
+    option.textContent = `${buildPaymentOptionLabel(method)}${method.isDefault ? ' · default' : ''}`;
+    savedPaymentSelect.appendChild(option);
+  });
+
+  const hasMethods = methods.length > 0;
+  savedPaymentSelect.disabled = !hasMethods;
+  if (hasMethods) {
+    const defaultMethod = methods.find((method) => method.isDefault);
+    savedPaymentSelect.value = methods.some((method) => method.id === currentValue)
+      ? currentValue
+      : (defaultMethod ? defaultMethod.id : methods[0].id);
+    billingProfileNote.textContent = 'The selected saved method will be attached to this quote request for follow-up invoicing or approved deposits.';
+  } else {
+    savedPaymentSelect.value = '';
+    billingProfileNote.textContent = 'Sign in and save a card on the Payments page if you want a billing method attached to this quote request.';
+  }
+}
+
+async function hydrateSavedPaymentMethods() {
+  if (!window.TMAuth || !window.TMAuth.getCurrentAccount || !window.TMAuth.getCurrentAccountData) {
+    renderSavedPaymentOptions();
+    return;
+  }
+
+  const account = window.TMAuth.getCurrentAccount();
+  const data = window.TMAuth.getCurrentAccountData();
+  const paymentProfile = data.paymentProfile || null;
+  if (!account || !paymentProfile || !paymentProfile.customerId || !window.TMAuth.writeAccountData) {
+    renderSavedPaymentOptions();
+    return;
+  }
+
+  try {
+    const result = await fetchJson('/payments/list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId: paymentProfile.customerId }),
+    });
+    const localMethods = Array.isArray(data.paymentMethods) ? data.paymentMethods : [];
+    const mergedMethods = result.paymentMethods.map((remoteMethod) => {
+      const localMethod = localMethods.find((item) => item.processorPaymentMethodId === remoteMethod.id);
+      return {
+        ...(localMethod || {}),
+        brand: String(remoteMethod.brand || 'card').replace(/(^|\s)\S/g, (char) => char.toUpperCase()),
+        last4: remoteMethod.last4 || '',
+        expMonth: remoteMethod.expMonth ? String(remoteMethod.expMonth).padStart(2, '0') : '',
+        expYear: remoteMethod.expYear ? String(remoteMethod.expYear) : '',
+        funding: remoteMethod.funding || '',
+        processor: 'stripe',
+        processorCustomerId: result.customerId,
+        processorPaymentMethodId: remoteMethod.id,
+        isDefault: remoteMethod.id === result.defaultPaymentMethodId,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+    window.TMAuth.writeAccountData(account.id, {
+      ...data,
+      paymentProfile: {
+        provider: 'stripe',
+        customerId: result.customerId,
+      },
+      paymentMethods: mergedMethods,
+    });
+  } catch (error) {
+    billingProfileNote.textContent = 'Saved payment methods could not be refreshed from Stripe. Local saved methods are still available if present.';
+  }
+
+  renderSavedPaymentOptions();
+}
+
+function getSelectedPaymentMethod() {
+  const selectedId = savedPaymentSelect.value;
+  if (!selectedId) return null;
+  return getQuotePaymentMethods().find((method) => method.id === selectedId) || null;
+}
+
 /* ── VALIDATE ───────────────────────────────────────────────────── */
 function validate() {
   let ok = true;
@@ -964,11 +1110,22 @@ function collect() {
   const sizes = {};
   sizeInputs.forEach(i => { sizes[i.id.replace('sz-','').toUpperCase()] = parseInt(i.value)||0; });
   const dlv = document.querySelector('input[name="delivery"]:checked')?.value;
+  const selectedPaymentMethod = getSelectedPaymentMethod();
+  const paymentProfile = window.TMAuth && window.TMAuth.getCurrentAccountData
+    ? window.TMAuth.getCurrentAccountData().paymentProfile
+    : null;
   return {
     projectName: document.getElementById('project-name').value.trim(),
     client:{ name:document.getElementById('name').value.trim(), email:document.getElementById('email').value.trim(), phone:document.getElementById('phone').value.trim() },
     design:{ fileName:fileInput.files[0]?.name||null, quantities:sizes, totalPieces:parseInt(totalEl.textContent)||0, shirtColor:document.getElementById('shirt-color').value, placement:document.getElementById('placement').value },
     logistics:{ rushOrder:document.getElementById('rush-check').checked, delivery:dlv, shippingAddress:dlv==='shipping'?document.getElementById('ship-address').value.trim():null },
+    billing:{
+      consent: billingConsentInput.checked,
+      customerId: paymentProfile && paymentProfile.customerId ? paymentProfile.customerId : null,
+      paymentMethodId: selectedPaymentMethod && selectedPaymentMethod.processorPaymentMethodId ? selectedPaymentMethod.processorPaymentMethodId : null,
+      paymentMethodLabel: selectedPaymentMethod ? buildPaymentOptionLabel(selectedPaymentMethod) : null,
+      paymentMethodLast4: selectedPaymentMethod && selectedPaymentMethod.last4 ? selectedPaymentMethod.last4 : null,
+    },
     context:document.getElementById('context').value.trim()||null,
     proofApprovalAcknowledged:true,
     submittedAt:new Date().toISOString()
@@ -1003,6 +1160,8 @@ function prefillFromAccount() {
       `${defaultAddress.city}, ${defaultAddress.state} ${defaultAddress.postalCode}`
     ].filter(Boolean).join('\n');
   }
+
+  hydrateSavedPaymentMethods();
 }
 
 /* ── CONFETTI ───────────────────────────────────────────────────── */
@@ -1071,7 +1230,14 @@ function autofillForm() {
   // Section 05 — Additional context
   document.getElementById('context').value = 'Annual summer reunion — approx. 42 attendees.';
 
-  // Section 06 — Proof approval
+  // Section 05 — Billing profile
+  const firstSavedMethod = savedPaymentSelect.options.length > 1 ? savedPaymentSelect.options[1].value : '';
+  if (firstSavedMethod) {
+    savedPaymentSelect.value = firstSavedMethod;
+    billingConsentInput.checked = true;
+  }
+
+  // Section 07 — Proof approval
   document.getElementById('proof-approval').checked = true;
 
   // Clear any stale error states
@@ -1196,6 +1362,7 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
             shirtColor: payload.design.shirtColor,
             placement: payload.design.placement,
             rushOrder: Boolean(payload.logistics.rushOrder),
+            paymentMethodLast4: payload.billing.paymentMethodLast4,
           },
         });
       }
@@ -1226,6 +1393,7 @@ function dismissSuccess() {
 }
 
 prefillFromAccount();
+renderSavedPaymentOptions();
 </script>
 <script src="nav-auth.js"></script>
 </body>

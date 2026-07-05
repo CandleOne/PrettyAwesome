@@ -91,6 +91,7 @@ def escape_pdf_text(value: object) -> str:
 def build_pdf(payload: dict) -> bytes:
     client    = payload.get("client", {})
     logistics = payload.get("logistics", {})
+    billing = payload.get("billing", {})
     quantities = payload.get("quantities", {})
     sizes     = [f"{k}: {quantities.get(k, 0)}" for k in sorted(quantities)]
     designs   = payload.get("designs", [])
@@ -126,6 +127,11 @@ def build_pdf(payload: dict) -> bytes:
         f"Rush Order: {'Yes' if logistics.get('rushOrder') else 'No'}",
         f"Delivery: {logistics.get('delivery') or 'Not provided'}",
         f"Shipping Address: {logistics.get('shippingAddress') or 'Not provided'}",
+        "",
+        "Billing Profile",
+        f"Saved Payment Method: {billing.get('paymentMethodLabel') or 'Not attached'}",
+        f"Processor Payment Method ID: {billing.get('paymentMethodId') or 'Not attached'}",
+        f"Billing Consent: {'Yes' if billing.get('consent') else 'No'}",
         "",
         "Additional Context",
         f"{payload.get('context') or 'No additional context provided'}",
@@ -266,6 +272,34 @@ def detach_payment_method(payload: dict) -> dict:
     }
 
 
+def list_payment_methods(payload: dict) -> dict:
+    customer_id = (payload.get("customerId") or "").strip()
+    if not customer_id:
+        raise ValueError("customer-required")
+
+    customer = stripe.Customer.retrieve(customer_id)
+    payment_methods = stripe.PaymentMethod.list(customer=customer_id, type="card", limit=20)
+    default_payment_method_id = customer.get("invoice_settings", {}).get("default_payment_method")
+
+    methods = []
+    for payment_method in payment_methods.data:
+        card = payment_method.get("card") or {}
+        methods.append({
+            "id": payment_method.id,
+            "brand": card.get("brand") or "card",
+            "last4": card.get("last4") or "",
+            "expMonth": card.get("exp_month") or "",
+            "expYear": card.get("exp_year") or "",
+            "funding": card.get("funding") or "",
+        })
+
+    return {
+        "customerId": customer_id,
+        "defaultPaymentMethodId": default_payment_method_id,
+        "paymentMethods": methods,
+    }
+
+
 class QuoteHandler(BaseHTTPRequestHandler):
     def _send_cors(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -383,6 +417,23 @@ class QuoteHandler(BaseHTTPRequestHandler):
                 return
             try:
                 self._json_ok(detach_payment_method(body))
+            except ValueError as exc:
+                self._json_error(400, str(exc))
+            except Exception as exc:
+                self._json_error(500, str(exc))
+            return
+
+        if self.path == "/payments/list":
+            ready, err = payments_ready()
+            if not ready:
+                self._json_error(503, err or "payments-unavailable")
+                return
+            body, err = self._read_json_body()
+            if err:
+                self._json_error(400, err)
+                return
+            try:
+                self._json_ok(list_payment_methods(body))
             except ValueError as exc:
                 self._json_error(400, str(exc))
             except Exception as exc:
