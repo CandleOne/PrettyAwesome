@@ -97,6 +97,7 @@
         sessionStorage.setItem(CURRENT_USER_KEY, id);
       } else {
         sessionStorage.removeItem(CURRENT_USER_KEY);
+        sessionStorage.removeItem('teeminus_last_registration_id');
       }
     }
 
@@ -171,12 +172,19 @@
 
       document.getElementById('lookup-account-name').setCustomValidity('');
       setCurrentUserId(found.id);
+      if (window.refreshAccountNavVisibility) {
+        window.refreshAccountNavVisibility();
+      }
       renderAccount(found);
     });
 
     signoutBtn.addEventListener('click', () => {
       setCurrentUserId('');
+      if (window.refreshAccountNavVisibility) {
+        window.refreshAccountNavVisibility();
+      }
       renderNoAccount();
+      window.location.href = 'index.html';
     });
 
     renderAccount(getCurrentAccount());
