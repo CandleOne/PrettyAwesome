@@ -11,6 +11,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+try:
+    import stripe
+except ImportError:
+    stripe = None
+
 ROOT = Path(__file__).resolve().parent
 QUOTE_DIR = ROOT / "quote_requests"
 QUOTE_DIR.mkdir(exist_ok=True)
@@ -18,6 +23,11 @@ QUOTE_DIR.mkdir(exist_ok=True)
 CLOUDINARY_CLOUD  = os.environ.get("CLOUDINARY_CLOUD_NAME", "")
 CLOUDINARY_KEY    = os.environ.get("CLOUDINARY_API_KEY", "")
 CLOUDINARY_SECRET = os.environ.get("CLOUDINARY_API_SECRET", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+
+if stripe and STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
 
 
 def cloudinary_upload(file_bytes: bytes, filename: str, folder: str) -> str:
@@ -170,6 +180,92 @@ def save_pdf(payload: dict) -> str:
     return filename
 
 
+def payments_ready() -> tuple[bool, str | None]:
+    if stripe is None:
+        return False, "stripe-sdk-missing"
+    if not STRIPE_SECRET_KEY:
+        return False, "missing-stripe-secret-key"
+    if not STRIPE_PUBLISHABLE_KEY:
+        return False, "missing-stripe-publishable-key"
+    return True, None
+
+
+def get_or_create_stripe_customer(payload: dict) -> object:
+    existing_customer_id = (payload.get("customerId") or "").strip()
+    if existing_customer_id:
+        try:
+            customer = stripe.Customer.retrieve(existing_customer_id)
+            if customer and not getattr(customer, "deleted", False):
+                updates = {}
+                email = (payload.get("email") or "").strip()
+                name = (payload.get("name") or "").strip()
+                if email and customer.get("email") != email:
+                    updates["email"] = email
+                if name and customer.get("name") != name:
+                    updates["name"] = name
+                if updates:
+                    customer = stripe.Customer.modify(existing_customer_id, **updates)
+                return customer
+        except Exception:
+            pass
+
+    metadata = {
+        "teeminusAccountId": (payload.get("accountId") or "").strip(),
+        "teeminusRole": (payload.get("role") or "").strip(),
+    }
+    metadata = {key: value for key, value in metadata.items() if value}
+    return stripe.Customer.create(
+        email=(payload.get("email") or "").strip() or None,
+        name=(payload.get("name") or "").strip() or None,
+        metadata=metadata,
+    )
+
+
+def create_setup_intent(payload: dict) -> dict:
+    customer = get_or_create_stripe_customer(payload)
+    setup_intent = stripe.SetupIntent.create(
+        customer=customer.id,
+        automatic_payment_methods={"enabled": True},
+        usage="off_session",
+        metadata={
+            "teeminusAccountId": (payload.get("accountId") or "").strip(),
+            "teeminusEmail": (payload.get("email") or "").strip(),
+        },
+    )
+    return {
+        "customerId": customer.id,
+        "clientSecret": setup_intent.client_secret,
+    }
+
+
+def set_default_payment_method(payload: dict) -> dict:
+    customer_id = (payload.get("customerId") or "").strip()
+    payment_method_id = (payload.get("paymentMethodId") or "").strip()
+    if not customer_id or not payment_method_id:
+        raise ValueError("customer-and-payment-method-required")
+
+    customer = stripe.Customer.modify(
+        customer_id,
+        invoice_settings={"default_payment_method": payment_method_id},
+    )
+    return {
+        "customerId": customer.id,
+        "defaultPaymentMethodId": customer.get("invoice_settings", {}).get("default_payment_method"),
+    }
+
+
+def detach_payment_method(payload: dict) -> dict:
+    payment_method_id = (payload.get("paymentMethodId") or "").strip()
+    if not payment_method_id:
+        raise ValueError("payment-method-required")
+
+    payment_method = stripe.PaymentMethod.detach(payment_method_id)
+    return {
+        "paymentMethodId": payment_method.id,
+        "customerId": payment_method.get("customer") or "",
+    }
+
+
 class QuoteHandler(BaseHTTPRequestHandler):
     def _send_cors(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -182,6 +278,20 @@ class QuoteHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:
+        if self.path == "/payments/config":
+            ready, err = payments_ready()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self._send_cors()
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "ok": True,
+                "configured": ready,
+                "publishableKey": STRIPE_PUBLISHABLE_KEY if ready else "",
+                "error": err,
+            }).encode("utf-8"))
+            return
+
         parsed = urlparse(self.path)
         rel_path = parsed.path.lstrip("/")
         if rel_path in {"", "index.html", "teeminus-order-form.html"}:
@@ -222,7 +332,63 @@ class QuoteHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps({"ok": False, "error": msg}).encode("utf-8"))
 
+    def _json_ok(self, payload: dict) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self._send_cors()
+        self.end_headers()
+        self.wfile.write(json.dumps({"ok": True, **payload}).encode("utf-8"))
+
     def do_POST(self) -> None:
+        if self.path == "/payments/setup-intent":
+            ready, err = payments_ready()
+            if not ready:
+                self._json_error(503, err or "payments-unavailable")
+                return
+            body, err = self._read_json_body()
+            if err:
+                self._json_error(400, err)
+                return
+            try:
+                self._json_ok(create_setup_intent(body))
+            except Exception as exc:
+                self._json_error(500, str(exc))
+            return
+
+        if self.path == "/payments/default":
+            ready, err = payments_ready()
+            if not ready:
+                self._json_error(503, err or "payments-unavailable")
+                return
+            body, err = self._read_json_body()
+            if err:
+                self._json_error(400, err)
+                return
+            try:
+                self._json_ok(set_default_payment_method(body))
+            except ValueError as exc:
+                self._json_error(400, str(exc))
+            except Exception as exc:
+                self._json_error(500, str(exc))
+            return
+
+        if self.path == "/payments/detach":
+            ready, err = payments_ready()
+            if not ready:
+                self._json_error(503, err or "payments-unavailable")
+                return
+            body, err = self._read_json_body()
+            if err:
+                self._json_error(400, err)
+                return
+            try:
+                self._json_ok(detach_payment_method(body))
+            except ValueError as exc:
+                self._json_error(400, str(exc))
+            except Exception as exc:
+                self._json_error(500, str(exc))
+            return
+
         if self.path == "/upload-design":
             body, err = self._read_json_body()
             if err:

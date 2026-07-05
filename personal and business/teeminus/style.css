@@ -1043,6 +1043,31 @@ html, body {
     gap: 0.2rem;
 }
 
+.processor-note {
+    margin-bottom: 0.9rem;
+}
+
+.processor-note.success {
+    background: #e2f3ea;
+}
+
+.processor-note.error {
+    background: #fbe4e4;
+}
+
+.stripe-card-frame {
+    border: 2px solid #000000;
+    background: #ffffff;
+    min-height: 52px;
+    padding: 0.95rem 0.85rem;
+    display: flex;
+    align-items: center;
+}
+
+.payment-helper-copy {
+    margin-top: 0.45rem;
+}
+
 .account-inline-actions {
     display: flex;
     gap: 0.55rem;

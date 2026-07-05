@@ -114,6 +114,7 @@
   function emptyAccountData() {
     return {
       addresses: [],
+      paymentProfile: null,
       paymentMethods: [],
       orders: [],
     };
@@ -131,6 +132,12 @@
       const parsed = raw ? JSON.parse(raw) : {};
       return {
         addresses: Array.isArray(parsed.addresses) ? parsed.addresses : [],
+        paymentProfile: parsed && typeof parsed.paymentProfile === 'object' && parsed.paymentProfile
+          ? {
+            provider: normalize(parsed.paymentProfile.provider),
+            customerId: normalize(parsed.paymentProfile.customerId),
+          }
+          : null,
         paymentMethods: Array.isArray(parsed.paymentMethods) ? parsed.paymentMethods : [],
         orders: Array.isArray(parsed.orders) ? parsed.orders : [],
       };
@@ -144,6 +151,12 @@
 
     const normalized = {
       addresses: Array.isArray(data && data.addresses) ? data.addresses : [],
+      paymentProfile: data && data.paymentProfile && typeof data.paymentProfile === 'object'
+        ? {
+          provider: normalize(data.paymentProfile.provider),
+          customerId: normalize(data.paymentProfile.customerId),
+        }
+        : null,
       paymentMethods: Array.isArray(data && data.paymentMethods) ? data.paymentMethods : [],
       orders: Array.isArray(data && data.orders) ? data.orders : [],
     };
@@ -245,10 +258,25 @@
       expYear,
       billingZip: normalize(input && input.billingZip),
       nickname: normalize(input && input.nickname),
+      processor: normalize(input && input.processor),
+      processorCustomerId: normalize(input && input.processorCustomerId),
+      processorPaymentMethodId: normalize(input && input.processorPaymentMethodId),
+      funding: normalize(input && input.funding),
       isDefault: Boolean(input && input.isDefault),
       createdAt: normalize(input && input.createdAt) || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+  }
+
+  function setPaymentProfile(accountId, input) {
+    const data = readAccountData(accountId);
+    const paymentProfile = input && input.customerId
+      ? {
+        provider: normalize(input.provider) || 'stripe',
+        customerId: normalize(input.customerId),
+      }
+      : null;
+    return writeAccountData(accountId, { ...data, paymentProfile });
   }
 
   function addPaymentMethod(accountId, input) {
@@ -536,6 +564,7 @@
     writeAccountData,
     getCurrentAccountData,
     updateCurrentAccountData,
+    setPaymentProfile,
     addAddress,
     updateAddress,
     deleteAddress,
