@@ -101,11 +101,8 @@
     </div>
   </div>
 
+  <script src="auth.js"></script>
   <script>
-    const ACCOUNTS_KEY = 'teeminus_accounts_v1';
-    const SESSION_KEY = 'teeminus_admin_session_v1';
-    const ADMIN_EMAIL = 'admin@teeminus.local';
-    const ADMIN_PASSWORD = 'admin123';
 
     const loginCard = document.getElementById('admin-login-card');
     const dashboard = document.getElementById('admin-dashboard');
@@ -116,20 +113,6 @@
     const tableBody = document.getElementById('admin-account-table-body');
     const searchInput = document.getElementById('account-search');
     const roleFilter = document.getElementById('account-role-filter');
-
-    function readAccounts() {
-      try {
-        const raw = localStorage.getItem(ACCOUNTS_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        return [];
-      }
-    }
-
-    function writeAccounts(accounts) {
-      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-    }
 
     function formatDate(iso) {
       if (!iso) return '-';
@@ -220,7 +203,7 @@
     }
 
     function renderDashboard() {
-      const accounts = readAccounts();
+      const accounts = window.TMAuth.readAccounts();
       renderMetrics(accounts);
       renderTable(accounts);
     }
@@ -238,19 +221,19 @@
       const email = document.getElementById('admin-email').value.trim().toLowerCase();
       const password = document.getElementById('admin-password').value;
 
-      if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+      const result = window.TMAuth.signInAdmin(email, password);
+      if (!result.ok) {
         document.getElementById('admin-password').setCustomValidity('Invalid admin credentials.');
         document.getElementById('admin-password').reportValidity();
         return;
       }
 
       document.getElementById('admin-password').setCustomValidity('');
-      sessionStorage.setItem(SESSION_KEY, '1');
       setAuthed(true);
     });
 
     logoutBtn.addEventListener('click', () => {
-      sessionStorage.removeItem(SESSION_KEY);
+      window.TMAuth.signOutAdmin();
       setAuthed(false);
       loginForm.reset();
     });
@@ -264,7 +247,7 @@
 
       const action = btn.getAttribute('data-action');
       const id = btn.getAttribute('data-id');
-      const accounts = readAccounts();
+      const accounts = window.TMAuth.readAccounts();
       const idx = accounts.findIndex((a) => a.id === id);
       if (idx === -1) return;
 
@@ -279,11 +262,11 @@
         accounts.splice(idx, 1);
       }
 
-      writeAccounts(accounts);
+      window.TMAuth.writeAccounts(accounts);
       renderDashboard();
     });
 
-    const isAuthed = sessionStorage.getItem(SESSION_KEY) === '1';
+    const isAuthed = window.TMAuth.isAdminAuthed();
     setAuthed(isAuthed);
   </script>
   <script src="nav-auth.js"></script>

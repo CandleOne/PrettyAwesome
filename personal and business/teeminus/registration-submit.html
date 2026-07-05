@@ -55,29 +55,19 @@
     </div>
   </div>
 
+  <script src="auth.js"></script>
   <script>
-    const ACCOUNTS_KEY = 'teeminus_accounts_v1';
-    const lastId = sessionStorage.getItem('teeminus_last_registration_id');
+    const lastId = sessionStorage.getItem(window.TMAuth.KEYS.LAST_REGISTRATION_ID) || window.TMAuth.getCurrentUserId();
     const summaryEl = document.getElementById('registration-summary');
     const messageEl = document.getElementById('registration-success-message');
 
-    function readAccounts() {
-      try {
-        const raw = localStorage.getItem(ACCOUNTS_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        return [];
-      }
-    }
-
-    const accounts = readAccounts();
+    const accounts = window.TMAuth.readAccounts();
     const account = accounts.find((item) => item.id === lastId) || null;
 
     if (!account) {
       messageEl.textContent = 'Account saved. You can now continue using Tee-Minus.';
     } else {
-      const roleText = account.role === 'print-shop' ? 'Print Shop Partner' : 'Customer';
+      const roleText = window.TMAuth.roleLabel(account.role);
       messageEl.textContent = `Welcome, ${account.name}. Your ${roleText} account is ready.`;
 
       const lines = [
