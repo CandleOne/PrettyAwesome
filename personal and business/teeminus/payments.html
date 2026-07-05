@@ -73,6 +73,13 @@
                 <input type="text" id="payment-billing-zip" inputmode="numeric" maxlength="10" placeholder="78701" required>
               </div>
               <div class="span-2">
+                <label for="payment-wallet-button">Google Pay (Optional)</label>
+                <div id="payment-wallet-row" class="wallet-row" hidden>
+                  <div id="payment-wallet-button" class="wallet-button-host"></div>
+                </div>
+                <p class="field-note payment-helper-copy" id="payment-wallet-note">Google Pay appears automatically on supported devices and browsers.</p>
+              </div>
+              <div class="span-2">
                 <label for="payment-element">Card Details</label>
                 <div class="stripe-card-frame" id="payment-element"></div>
                 <p class="field-note payment-helper-copy">Card entry is handled directly by Stripe over a secure connection.</p>
@@ -137,6 +144,9 @@
     const processorStatusEl = document.getElementById('payments-processor-status');
     const processorErrorEl = document.getElementById('payment-element-error');
     const paymentElementHostEl = document.getElementById('payment-element');
+    const walletRowEl = document.getElementById('payment-wallet-row');
+    const walletButtonHostEl = document.getElementById('payment-wallet-button');
+    const walletNoteEl = document.getElementById('payment-wallet-note');
     const submitBtn = document.getElementById('payments-submit-btn');
     const resetBtn = document.getElementById('payments-reset-btn');
 
@@ -150,6 +160,8 @@
     let stripeCardNumber = null;
     let stripeCardExpiry = null;
     let stripeCardCvc = null;
+    let stripePaymentRequest = null;
+    let stripePaymentRequestButton = null;
     let paymentsConfig = null;
     let activeSetupCustomerId = '';
     let activeSetupClientSecret = '';
@@ -237,6 +249,7 @@
           field.update({ disabled: !enabled || busy });
         }
       });
+      walletRowEl.classList.toggle('disabled', !enabled || busy);
     }
 
     function clearStripeCardFields() {
@@ -245,6 +258,22 @@
           field.clear();
         }
       });
+    }
+
+    function resetWalletState() {
+      walletRowEl.hidden = true;
+      walletRowEl.classList.remove('disabled');
+      walletNoteEl.textContent = 'Google Pay appears automatically on supported devices and browsers.';
+    }
+
+    function teardownWalletButton() {
+      if (stripePaymentRequestButton && typeof stripePaymentRequestButton.unmount === 'function') {
+        stripePaymentRequestButton.unmount();
+      }
+      stripePaymentRequestButton = null;
+      stripePaymentRequest = null;
+      walletButtonHostEl.innerHTML = '';
+      resetWalletState();
     }
 
     function mountCardInputShell() {
@@ -282,6 +311,7 @@
           field.unmount();
         }
       });
+      teardownWalletButton();
       stripeCardNumber = null;
       stripeCardExpiry = null;
       stripeCardCvc = null;
@@ -446,6 +476,128 @@
       return getCurrentData();
     }
 
+    async function saveConfirmedMethod(account, paymentMethodId, shouldBeDefault) {
+      const pendingLocal = {
+        id: `pay_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+        nickname: nicknameInput.value,
+        cardholder: cardholderInput.value,
+        billingZip: billingZipInput.value,
+        processor: 'stripe',
+        processorCustomerId: activeSetupCustomerId,
+        processorPaymentMethodId: paymentMethodId,
+        isDefault: shouldBeDefault,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (shouldBeDefault) {
+        await fetchJson('/payments/default', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: activeSetupCustomerId,
+            paymentMethodId,
+          }),
+        });
+      }
+
+      const updatedData = await syncPaymentMethodsFromServer(account, activeSetupCustomerId, pendingLocal);
+      const methods = updatedData.paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      renderSummaries(account, methods, updatedData.paymentProfile || null);
+      renderList(methods);
+      resetForm();
+      await ensureStripeReady(true);
+    }
+
+    async function mountGooglePayButton(account) {
+      teardownWalletButton();
+      if (!stripeClient || !stripeElements || !activeSetupClientSecret) {
+        return;
+      }
+
+      try {
+        stripePaymentRequest = stripeClient.paymentRequest({
+          country: 'US',
+          currency: 'usd',
+          total: {
+            label: 'Save payment method',
+            amount: 100,
+          },
+          requestPayerName: true,
+          requestPayerEmail: true,
+        });
+
+        const walletResult = await stripePaymentRequest.canMakePayment();
+        if (!walletResult || !walletResult.googlePay) {
+          walletNoteEl.textContent = 'Google Pay is unavailable on this browser/device. Use the secure card fields below.';
+          return;
+        }
+
+        stripePaymentRequestButton = stripeElements.create('paymentRequestButton', {
+          paymentRequest: stripePaymentRequest,
+          style: {
+            paymentRequestButton: {
+              type: 'default',
+              theme: 'dark',
+              height: '46px',
+            },
+          },
+        });
+        stripePaymentRequestButton.mount(walletButtonHostEl);
+        walletRowEl.hidden = false;
+        walletNoteEl.textContent = 'Google Pay uses Stripe tokenization. No card number is stored by Tee-Minus.';
+
+        stripePaymentRequest.on('paymentmethod', async (event) => {
+          if (busy) {
+            event.complete('fail');
+            return;
+          }
+
+          clearAlert();
+          clearProcessorError();
+          setBusy(true, 'Saving Google Pay...');
+
+          try {
+            const currentData = getCurrentData();
+            const shouldBeDefault = defaultInput.checked || !currentData.paymentMethods.length;
+
+            let confirmed = await stripeClient.confirmCardSetup(activeSetupClientSecret, {
+              payment_method: event.paymentMethod.id,
+            }, { handleActions: false });
+
+            if (confirmed.error) {
+              event.complete('fail');
+              throw new Error(confirmed.error.message || 'Google Pay could not be attached.');
+            }
+
+            if (confirmed.setupIntent && confirmed.setupIntent.status === 'requires_action') {
+              confirmed = await stripeClient.confirmCardSetup(activeSetupClientSecret);
+              if (confirmed.error) {
+                event.complete('fail');
+                throw new Error(confirmed.error.message || 'Additional authentication failed.');
+              }
+            }
+
+            if (!confirmed.setupIntent || !confirmed.setupIntent.payment_method) {
+              event.complete('fail');
+              throw new Error('Stripe did not return a Google Pay payment method.');
+            }
+
+            event.complete('success');
+            await saveConfirmedMethod(account, String(confirmed.setupIntent.payment_method), shouldBeDefault);
+            showAlert('Google Pay payment method saved securely with Stripe.', 'success');
+          } catch (error) {
+            showProcessorError(error.message);
+            showAlert(`Google Pay could not be saved: ${error.message}`, 'error');
+          } finally {
+            setBusy(false, 'Save Payment Method');
+          }
+        });
+      } catch (error) {
+        walletNoteEl.textContent = `Google Pay could not initialize: ${error.message}`;
+      }
+    }
+
     async function ensureStripeReady(forceRefresh) {
       if (!window.Stripe) {
         updateProcessorStatus('Stripe.js did not load. Check network access and refresh this page.', 'error');
@@ -571,6 +723,8 @@
       stripeCardExpiry.on('ready', onReady);
       stripeCardCvc.on('ready', onReady);
 
+      await mountGooglePayButton(account);
+
       // If ad blockers/privacy controls block Stripe iframes, keep the user out of a silent blank state.
       setTimeout(() => {
         if (stripeCardNumber && paymentElementHostEl.querySelector('iframe')) {
@@ -659,36 +813,7 @@
         }
 
         const paymentMethodId = String(confirmed.setupIntent.payment_method);
-        const pendingLocal = {
-          id: `pay_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
-          nickname: nicknameInput.value,
-          cardholder: cardholderInput.value,
-          billingZip: billingZipInput.value,
-          processor: 'stripe',
-          processorCustomerId: activeSetupCustomerId,
-          processorPaymentMethodId: paymentMethodId,
-          isDefault: shouldBeDefault,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        if (shouldBeDefault) {
-          await fetchJson('/payments/default', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              customerId: activeSetupCustomerId,
-              paymentMethodId,
-            }),
-          });
-        }
-
-        const updatedData = await syncPaymentMethodsFromServer(account, activeSetupCustomerId, pendingLocal);
-        const methods = updatedData.paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-        renderSummaries(account, methods, updatedData.paymentProfile || null);
-        renderList(methods);
-        resetForm();
-        await ensureStripeReady(true);
+        await saveConfirmedMethod(account, paymentMethodId, shouldBeDefault);
         showAlert('Payment method saved securely with Stripe.', 'success');
       } catch (error) {
         showProcessorError(error.message);

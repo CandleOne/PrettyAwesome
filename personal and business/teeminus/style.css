@@ -1065,6 +1065,22 @@ html, body {
     position: relative;
 }
 
+.wallet-row {
+    border: 2px solid #000000;
+    background: #ffffff;
+    padding: 0.75rem;
+    display: grid;
+}
+
+.wallet-row.disabled {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.wallet-button-host {
+    min-height: 48px;
+}
+
 .stripe-card-stack {
     width: 100%;
     display: grid;
