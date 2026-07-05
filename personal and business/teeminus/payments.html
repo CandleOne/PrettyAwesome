@@ -147,7 +147,9 @@
 
     let stripeClient = null;
     let stripeElements = null;
-    let stripeCard = null;
+    let stripeCardNumber = null;
+    let stripeCardExpiry = null;
+    let stripeCardCvc = null;
     let paymentsConfig = null;
     let activeSetupCustomerId = '';
     let activeSetupClientSecret = '';
@@ -230,9 +232,31 @@
         }
         field.disabled = !enabled || busy;
       });
-      if (stripeCard && typeof stripeCard.update === 'function') {
-        stripeCard.update({ disabled: !enabled || busy });
-      }
+      [stripeCardNumber, stripeCardExpiry, stripeCardCvc].forEach((field) => {
+        if (field && typeof field.update === 'function') {
+          field.update({ disabled: !enabled || busy });
+        }
+      });
+    }
+
+    function clearStripeCardFields() {
+      [stripeCardNumber, stripeCardExpiry, stripeCardCvc].forEach((field) => {
+        if (field && typeof field.clear === 'function') {
+          field.clear();
+        }
+      });
+    }
+
+    function mountCardInputShell() {
+      paymentElementHostEl.innerHTML = [
+        '<div class="stripe-card-stack">',
+        '  <div class="stripe-slot" id="stripe-card-number"></div>',
+        '  <div class="stripe-card-row">',
+        '    <div class="stripe-slot" id="stripe-card-expiry"></div>',
+        '    <div class="stripe-slot" id="stripe-card-cvc"></div>',
+        '  </div>',
+        '</div>',
+      ].join('');
     }
 
     function setCardMountState(stateText, isError) {
@@ -249,16 +273,18 @@
       formEl.reset();
       defaultInput.checked = false;
       clearProcessorError();
-      if (stripeCard) {
-        stripeCard.clear();
-      }
+      clearStripeCardFields();
     }
 
     function teardownPaymentElement() {
-      if (stripeCard && typeof stripeCard.unmount === 'function') {
-        stripeCard.unmount();
-      }
-      stripeCard = null;
+      [stripeCardNumber, stripeCardExpiry, stripeCardCvc].forEach((field) => {
+        if (field && typeof field.unmount === 'function') {
+          field.unmount();
+        }
+      });
+      stripeCardNumber = null;
+      stripeCardExpiry = null;
+      stripeCardCvc = null;
       stripeElements = null;
       activeSetupCustomerId = '';
       activeSetupClientSecret = '';
@@ -481,7 +507,7 @@
         });
       }
 
-      if (!forceRefresh && stripeCard && activeSetupCustomerId === setupIntent.customerId) {
+      if (!forceRefresh && stripeCardNumber && activeSetupCustomerId === setupIntent.customerId) {
         setFormEnabled(true);
         return true;
       }
@@ -501,39 +527,53 @@
           },
         }
       });
-      stripeCard = stripeElements.create('card', {
-        hidePostalCode: true,
-        style: {
-          base: {
-            fontFamily: 'Courier New, Courier, monospace',
-            fontSize: '16px',
-            color: '#000000',
-            '::placeholder': {
-              color: '#6a6a6a',
-            },
-          },
-          invalid: {
-            color: '#7a1111',
+      mountCardInputShell();
+
+      const secureFieldStyle = {
+        base: {
+          fontFamily: 'Courier New, Courier, monospace',
+          fontSize: '16px',
+          color: '#000000',
+          '::placeholder': {
+            color: '#6a6a6a',
           },
         },
-      });
-      stripeCard.mount(paymentElementHostEl);
-      stripeCard.on('change', (event) => {
+        invalid: {
+          color: '#7a1111',
+        },
+      };
+
+      stripeCardNumber = stripeElements.create('cardNumber', { style: secureFieldStyle });
+      stripeCardExpiry = stripeElements.create('cardExpiry', { style: secureFieldStyle });
+      stripeCardCvc = stripeElements.create('cardCvc', { style: secureFieldStyle });
+
+      stripeCardNumber.mount('#stripe-card-number');
+      stripeCardExpiry.mount('#stripe-card-expiry');
+      stripeCardCvc.mount('#stripe-card-cvc');
+
+      [stripeCardNumber, stripeCardExpiry, stripeCardCvc].forEach((field) => field.on('change', (event) => {
         if (event.error) {
           showProcessorError(event.error.message);
         } else {
           clearProcessorError();
         }
-      });
+      }));
 
-      stripeCard.on('ready', () => {
-        clearCardMountState();
-        updateProcessorStatus('Secure card entry is live through Stripe. Tee-Minus stores only tokenized payment references.', 'success');
-      });
+      let readyCount = 0;
+      const onReady = () => {
+        readyCount += 1;
+        if (readyCount === 3) {
+          clearCardMountState();
+          updateProcessorStatus('Secure card entry is live through Stripe. Tee-Minus stores only tokenized payment references.', 'success');
+        }
+      };
+      stripeCardNumber.on('ready', onReady);
+      stripeCardExpiry.on('ready', onReady);
+      stripeCardCvc.on('ready', onReady);
 
       // If ad blockers/privacy controls block Stripe iframes, keep the user out of a silent blank state.
       setTimeout(() => {
-        if (stripeCard && paymentElementHostEl.querySelector('iframe')) {
+        if (stripeCardNumber && paymentElementHostEl.querySelector('iframe')) {
           return;
         }
         setCardMountState('Secure card field failed to load. Disable blockers for js.stripe.com and refresh.', true);
@@ -586,21 +626,28 @@
       setBusy(true, 'Securing Card...');
       try {
         const stripeReady = await ensureStripeReady();
-        if (!stripeReady || !stripeCard) {
+        if (!stripeReady || !stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
           throw new Error('Stripe payment form is not ready yet.');
         }
 
-        const confirmed = await stripeClient.confirmCardSetup(activeSetupClientSecret, {
-          payment_method: {
-            card: stripeCard,
-            billing_details: {
-              name: cardholderInput.value,
-              email: account.email,
-              address: {
-                postal_code: billingZipInput.value,
-              },
+        const paymentMethodCreated = await stripeClient.createPaymentMethod({
+          type: 'card',
+          card: stripeCardNumber,
+          billing_details: {
+            name: cardholderInput.value,
+            email: account.email,
+            address: {
+              postal_code: billingZipInput.value,
             },
           },
+        });
+
+        if (paymentMethodCreated.error || !paymentMethodCreated.paymentMethod) {
+          throw new Error((paymentMethodCreated && paymentMethodCreated.error && paymentMethodCreated.error.message) || 'Stripe could not read this card.');
+        }
+
+        const confirmed = await stripeClient.confirmCardSetup(activeSetupClientSecret, {
+          payment_method: paymentMethodCreated.paymentMethod.id,
         });
 
         if (confirmed.error) {

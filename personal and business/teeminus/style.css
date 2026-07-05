@@ -1065,6 +1065,36 @@ html, body {
     position: relative;
 }
 
+.stripe-card-stack {
+    width: 100%;
+    display: grid;
+    gap: 0.7rem;
+}
+
+.stripe-card-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.stripe-slot {
+    border: 2px solid #000000;
+    background: #ffffff;
+    padding: 0.65rem 0.7rem;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+}
+
+.stripe-slot.StripeElement--focus {
+    border-color: #055034;
+    box-shadow: 0 0 0 3px rgba(5, 80, 52, 0.2);
+}
+
+.stripe-slot.StripeElement--invalid {
+    border-color: #7a1111;
+}
+
 .stripe-card-frame[data-state]::before {
     content: attr(data-state-text);
     font-family: 'Courier New', Courier, monospace;
@@ -1175,6 +1205,10 @@ html, body {
 
     .account-badge-row {
         justify-content: flex-start;
+    }
+
+    .stripe-card-row {
+        grid-template-columns: 1fr;
     }
 
     .utility-form-grid.cols-2 {
