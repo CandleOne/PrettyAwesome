@@ -30,7 +30,7 @@
 
       <div id="print-shop-summary" class="registration-summary" hidden></div>
 
-      <h2 class="account-subtitle">Sign In</h2>
+      <h2 class="account-subtitle">Sign In or Switch Account</h2>
       <form class="registration-form" id="account-lookup-form">
         <label for="lookup-email">Email</label>
         <input type="email" id="lookup-email" required>
@@ -119,7 +119,7 @@
     }
 
     function updateSignedInUI(account) {
-      lookupForm.hidden = Boolean(account);
+      lookupForm.hidden = false;
       signoutBtn.hidden = !account;
     }
 
@@ -159,9 +159,10 @@
       if (window.refreshAccountNavVisibility) {
         window.refreshAccountNavVisibility();
       }
+      lookupForm.reset();
       renderNoAccount();
       updateSignedInUI(null);
-      window.location.href = 'index.html';
+      document.getElementById('lookup-email').focus();
     });
 
     const current = window.TMAuth.getCurrentAccount();
