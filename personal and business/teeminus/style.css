@@ -423,5 +423,6 @@ html, body {
 
 .info-section h1 span,
 .info-section h2 span {
-  color: #b91010; /* Highlighted text color */
+  color: #000000; /* Highlighted text color */
+  background-color: #ff4646;
 }
