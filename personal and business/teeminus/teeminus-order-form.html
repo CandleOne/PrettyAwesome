@@ -871,6 +871,7 @@ select.inp {
   </div>
 </footer>
 
+<script src="auth.js"></script>
 <script>
 
 
@@ -972,6 +973,36 @@ function collect() {
     proofApprovalAcknowledged:true,
     submittedAt:new Date().toISOString()
   };
+}
+
+function prefillFromAccount() {
+  if (!window.TMAuth || !window.TMAuth.getCurrentAccount) return;
+
+  const account = window.TMAuth.getCurrentAccount();
+  if (!account) return;
+
+  const accountData = window.TMAuth.getCurrentAccountData
+    ? window.TMAuth.getCurrentAccountData()
+    : { addresses: [] };
+  const defaultAddress = (accountData.addresses || []).find((item) => item.isDefault) || accountData.addresses[0];
+
+  const nameValue = account.role === 'print-shop'
+    ? (account.accountName || account.name)
+    : (account.name || account.accountName);
+
+  if (!document.getElementById('name').value.trim()) {
+    document.getElementById('name').value = nameValue || '';
+  }
+  if (!document.getElementById('email').value.trim()) {
+    document.getElementById('email').value = account.email || '';
+  }
+  if (defaultAddress && !document.getElementById('ship-address').value.trim()) {
+    document.getElementById('ship-address').value = [
+      defaultAddress.line1,
+      defaultAddress.line2,
+      `${defaultAddress.city}, ${defaultAddress.state} ${defaultAddress.postalCode}`
+    ].filter(Boolean).join('\n');
+  }
 }
 
 /* ── CONFETTI ───────────────────────────────────────────────────── */
@@ -1151,6 +1182,25 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error(result.error || 'Unable to save quote request');
 
+    if (window.TMAuth && window.TMAuth.getCurrentAccount && window.TMAuth.addOrderForAccount) {
+      const account = window.TMAuth.getCurrentAccount();
+      if (account) {
+        window.TMAuth.addOrderForAccount(account.id, {
+          title: payload.projectName,
+          summary: payload.context || '',
+          deliveryMethod: payload.logistics.delivery,
+          quantity: payload.design.totalPieces,
+          reference: result.file || '',
+          accountRole: account.role,
+          details: {
+            shirtColor: payload.design.shirtColor,
+            placement: payload.design.placement,
+            rushOrder: Boolean(payload.logistics.rushOrder),
+          },
+        });
+      }
+    }
+
     console.log('%c✅ Tee-Minus Quote Saved', 'color:#055034;font-weight:bold;font-size:14px');
     console.log(JSON.stringify(payload, null, 2));
     console.log('Saved PDF:', result.file);
@@ -1174,6 +1224,8 @@ function dismissSuccess() {
   fileChosenEl.style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
+prefillFromAccount();
 </script>
 <script src="nav-auth.js"></script>
 </body>

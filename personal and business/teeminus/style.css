@@ -875,6 +875,10 @@ html, body {
     max-width: 860px;
 }
 
+.account-utility-card {
+    max-width: 980px;
+}
+
 .account-alert {
     border: 2px solid #000000;
     padding: 0.8rem 1rem;
@@ -910,6 +914,10 @@ html, body {
     gap: 0.7rem;
     flex-wrap: wrap;
     margin-bottom: 1rem;
+}
+
+.compact-links {
+    align-items: center;
 }
 
 .account-section {
@@ -950,6 +958,119 @@ html, body {
     font-size: 1.25rem;
     margin-top: 0.85rem;
     margin-bottom: 0.35rem;
+}
+
+.section-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.7rem;
+}
+
+.utility-form-grid {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.utility-form-grid.cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.utility-form-grid .span-2 {
+    grid-column: 1 / -1;
+}
+
+.utility-form-grid.compact-grid {
+    gap: 0.7rem;
+}
+
+.account-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.account-item-card {
+    border: 2px solid #000000;
+    background: #ffffff;
+    padding: 0.95rem 1rem;
+    display: grid;
+    gap: 0.65rem;
+}
+
+.account-item-card h3 {
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.05rem;
+}
+
+.account-item-card p {
+    margin: 0;
+}
+
+.account-item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.account-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.account-badge {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #000000;
+    padding: 0.22rem 0.5rem;
+    background: #f4f4f4;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.77rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.account-badge.success {
+    background: #e2f3ea;
+}
+
+.account-meta {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.account-inline-actions {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.account-inline-actions button {
+    margin: 0;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #000000;
+    padding: 0.45rem 0.7rem;
+    cursor: pointer;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.account-inline-actions button:hover {
+    background: #e8f5f0;
+}
+
+.account-empty {
+    border: 2px dashed #000000;
+    background: #fffdf7;
+    padding: 1rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 700;
 }
 
 @media (max-width: 768px) {
@@ -1001,5 +1122,23 @@ html, body {
     .admin-header-row {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .section-title-row,
+    .account-item-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .account-badge-row {
+        justify-content: flex-start;
+    }
+
+    .utility-form-grid.cols-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .utility-form-grid .span-2 {
+        grid-column: auto;
     }
 }

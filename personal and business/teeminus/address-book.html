@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Address Book | Tee-Minus</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="registration-page account-page">
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="index.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="account.html" class="nav-btn" data-account-link>Account</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <main class="registration-main">
+    <section class="registration-card account-card account-utility-card">
+      <div class="admin-header-row">
+        <h1>Address Book</h1>
+        <a href="account.html" class="success-link alt">Back to Account</a>
+      </div>
+      <p>Save delivery, pickup, and production addresses for faster project setup.</p>
+
+      <div id="address-alert" class="account-alert" hidden></div>
+
+      <div id="address-empty-state" class="registration-summary">
+        <p>No active account is loaded.</p>
+        <p>Sign in on your account page to manage saved addresses.</p>
+        <div class="account-links compact-links">
+          <a href="account.html" class="success-link">Sign In</a>
+          <a href="registration.html" class="success-link alt">Create Account</a>
+        </div>
+      </div>
+
+      <div id="address-authenticated" hidden>
+        <div class="account-grid">
+          <div class="registration-summary" id="address-account-summary"></div>
+          <div class="registration-summary" id="address-stats-summary"></div>
+        </div>
+
+        <div class="account-links compact-links">
+          <a href="payments.html" class="success-link alt">Payments</a>
+          <a href="order-history.html" class="success-link alt">Order History</a>
+          <a href="teeminus-order-form.html" class="success-link">Start a Quote</a>
+        </div>
+
+        <section class="account-section">
+          <div class="section-title-row">
+            <h2 class="account-subtitle">Saved Address</h2>
+            <span class="field-note" id="address-form-mode">Create a new address for this account.</span>
+          </div>
+          <form class="registration-form" id="address-form">
+            <div class="utility-form-grid cols-2">
+              <div>
+                <label for="address-label">Label</label>
+                <input type="text" id="address-label" placeholder="Main shipping, Studio pickup, Warehouse" required>
+              </div>
+              <div>
+                <label for="address-recipient">Recipient</label>
+                <input type="text" id="address-recipient" placeholder="Who should receive this order?" required>
+              </div>
+              <div class="span-2">
+                <label for="address-line1">Address Line 1</label>
+                <input type="text" id="address-line1" placeholder="Street address" required>
+              </div>
+              <div class="span-2">
+                <label for="address-line2">Address Line 2</label>
+                <input type="text" id="address-line2" placeholder="Suite, unit, floor, building">
+              </div>
+              <div>
+                <label for="address-city">City</label>
+                <input type="text" id="address-city" required>
+              </div>
+              <div>
+                <label for="address-state">State</label>
+                <input type="text" id="address-state" maxlength="2" placeholder="TX" required>
+              </div>
+              <div>
+                <label for="address-postal">ZIP Code</label>
+                <input type="text" id="address-postal" inputmode="numeric" maxlength="10" placeholder="78701" required>
+              </div>
+              <div>
+                <label for="address-notes">Delivery Notes</label>
+                <input type="text" id="address-notes" placeholder="Dock access, suite callbox, pickup hours">
+              </div>
+              <label class="checkbox-label span-2" for="address-default">
+                <input type="checkbox" id="address-default">
+                Make this the default address for future orders
+              </label>
+            </div>
+            <div class="registration-actions">
+              <button type="submit" id="address-save-btn">Save Address</button>
+              <button type="button" class="btn-prev" id="address-cancel-btn" hidden>Cancel Edit</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="account-section">
+          <h2 class="account-subtitle">Saved Addresses</h2>
+          <div id="address-list" class="account-list"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-column">
+      <h1>Our Materials</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Ethics</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Legal Stuff</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    const alertEl = document.getElementById('address-alert');
+    const emptyStateEl = document.getElementById('address-empty-state');
+    const authedEl = document.getElementById('address-authenticated');
+    const accountSummaryEl = document.getElementById('address-account-summary');
+    const statsSummaryEl = document.getElementById('address-stats-summary');
+    const listEl = document.getElementById('address-list');
+    const formEl = document.getElementById('address-form');
+    const formModeEl = document.getElementById('address-form-mode');
+    const cancelBtn = document.getElementById('address-cancel-btn');
+
+    const labelInput = document.getElementById('address-label');
+    const recipientInput = document.getElementById('address-recipient');
+    const line1Input = document.getElementById('address-line1');
+    const line2Input = document.getElementById('address-line2');
+    const cityInput = document.getElementById('address-city');
+    const stateInput = document.getElementById('address-state');
+    const postalInput = document.getElementById('address-postal');
+    const notesInput = document.getElementById('address-notes');
+    const defaultInput = document.getElementById('address-default');
+
+    let editingAddressId = '';
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showAlert(message, tone) {
+      alertEl.textContent = message;
+      alertEl.className = `account-alert ${tone || 'info'}`;
+      alertEl.hidden = false;
+    }
+
+    function clearAlert() {
+      alertEl.hidden = true;
+      alertEl.textContent = '';
+      alertEl.className = 'account-alert';
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '-';
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString();
+    }
+
+    function getCurrentAccount() {
+      return window.TMAuth ? window.TMAuth.getCurrentAccount() : null;
+    }
+
+    function getCurrentData() {
+      return window.TMAuth ? window.TMAuth.getCurrentAccountData() : { addresses: [] };
+    }
+
+    function resetForm() {
+      editingAddressId = '';
+      formEl.reset();
+      stateInput.value = '';
+      formModeEl.textContent = 'Create a new address for this account.';
+      cancelBtn.hidden = true;
+    }
+
+    function populateForm(address) {
+      editingAddressId = address.id;
+      labelInput.value = address.label || '';
+      recipientInput.value = address.recipient || '';
+      line1Input.value = address.line1 || '';
+      line2Input.value = address.line2 || '';
+      cityInput.value = address.city || '';
+      stateInput.value = address.state || '';
+      postalInput.value = address.postalCode || '';
+      notesInput.value = address.deliveryNotes || '';
+      defaultInput.checked = Boolean(address.isDefault);
+      formModeEl.textContent = 'Editing an existing saved address.';
+      cancelBtn.hidden = false;
+      labelInput.focus();
+    }
+
+    function renderSignedOut() {
+      emptyStateEl.hidden = false;
+      authedEl.hidden = true;
+      resetForm();
+    }
+
+    function renderSummaries(account, addresses) {
+      const defaultAddress = addresses.find((item) => item.isDefault);
+      const roleCopy = account.role === 'print-shop'
+        ? 'Store your pickup points, studio locations, and preferred delivery destinations.'
+        : 'Save your most-used delivery and pickup destinations for faster checkout.';
+
+      accountSummaryEl.innerHTML = [
+        `<p><strong>${escapeHtml(account.name || account.accountName || 'Account')}</strong></p>`,
+        `<p>${escapeHtml(window.TMAuth.roleLabel(account.role))}</p>`,
+        `<p>${escapeHtml(account.email || '-')}</p>`,
+        `<p>${escapeHtml(roleCopy)}</p>`,
+      ].join('');
+
+      statsSummaryEl.innerHTML = [
+        '<p><strong>Address Snapshot</strong></p>',
+        `<p>Total Saved: ${addresses.length}</p>`,
+        `<p>Default: ${escapeHtml(defaultAddress ? defaultAddress.label : 'Not set')}</p>`,
+        `<p>Last Updated: ${escapeHtml(formatDate(addresses[0] && addresses[0].updatedAt))}</p>`,
+      ].join('');
+    }
+
+    function renderList(addresses) {
+      if (!addresses.length) {
+        listEl.innerHTML = '<div class="account-empty">No addresses saved yet. Add one above to speed up future quote requests.</div>';
+        return;
+      }
+
+      listEl.innerHTML = addresses.map((address) => {
+        const lines = [address.line1, address.line2, `${address.city}, ${address.state} ${address.postalCode}`]
+          .filter(Boolean)
+          .map((line) => `<p>${escapeHtml(line)}</p>`)
+          .join('');
+
+        return `
+          <article class="account-item-card">
+            <div class="account-item-head">
+              <div>
+                <h3>${escapeHtml(address.label || 'Saved Address')}</h3>
+                <p>${escapeHtml(address.recipient || '')}</p>
+              </div>
+              <div class="account-badge-row">
+                ${address.isDefault ? '<span class="account-badge success">Default</span>' : ''}
+                <span class="account-badge">${escapeHtml(formatDate(address.updatedAt))}</span>
+              </div>
+            </div>
+            <div class="account-meta">${lines}</div>
+            ${address.deliveryNotes ? `<p class="field-note">${escapeHtml(address.deliveryNotes)}</p>` : ''}
+            <div class="account-inline-actions">
+              <button type="button" data-action="edit" data-id="${escapeHtml(address.id)}">Edit</button>
+              <button type="button" data-action="default" data-id="${escapeHtml(address.id)}">Make Default</button>
+              <button type="button" data-action="delete" data-id="${escapeHtml(address.id)}">Delete</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderPage() {
+      clearAlert();
+      const account = getCurrentAccount();
+      if (!account) {
+        renderSignedOut();
+        return;
+      }
+
+      const data = getCurrentData();
+      const addresses = data.addresses.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      emptyStateEl.hidden = true;
+      authedEl.hidden = false;
+      renderSummaries(account, addresses);
+      renderList(addresses);
+      resetForm();
+    }
+
+    function buildPayload() {
+      return {
+        label: labelInput.value,
+        recipient: recipientInput.value,
+        line1: line1Input.value,
+        line2: line2Input.value,
+        city: cityInput.value,
+        state: stateInput.value.toUpperCase(),
+        postalCode: postalInput.value,
+        deliveryNotes: notesInput.value,
+        isDefault: defaultInput.checked,
+      };
+    }
+
+    formEl.addEventListener('submit', (event) => {
+      event.preventDefault();
+      clearAlert();
+
+      const account = getCurrentAccount();
+      if (!account) {
+        renderSignedOut();
+        return;
+      }
+
+      const payload = buildPayload();
+      if (editingAddressId) {
+        window.TMAuth.updateAddress(account.id, editingAddressId, payload);
+        showAlert('Address updated.', 'success');
+      } else {
+        window.TMAuth.addAddress(account.id, payload);
+        showAlert('Address saved.', 'success');
+      }
+
+      const data = getCurrentData();
+      const addresses = data.addresses.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      renderSummaries(account, addresses);
+      renderList(addresses);
+      resetForm();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      clearAlert();
+      resetForm();
+    });
+
+    listEl.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+
+      clearAlert();
+      const account = getCurrentAccount();
+      if (!account) {
+        renderSignedOut();
+        return;
+      }
+
+      const data = getCurrentData();
+      const address = data.addresses.find((item) => item.id === button.dataset.id);
+      if (!address) return;
+
+      if (button.dataset.action === 'edit') {
+        populateForm(address);
+        return;
+      }
+
+      if (button.dataset.action === 'default') {
+        window.TMAuth.updateAddress(account.id, address.id, { isDefault: true });
+        const updatedData = getCurrentData();
+        const addresses = updatedData.addresses.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+        renderSummaries(account, addresses);
+        renderList(addresses);
+        showAlert('Default address updated.', 'success');
+        return;
+      }
+
+      if (button.dataset.action === 'delete') {
+        if (!window.confirm('Delete this saved address?')) {
+          return;
+        }
+        window.TMAuth.deleteAddress(account.id, address.id);
+        const updatedData = getCurrentData();
+        const addresses = updatedData.addresses.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+        renderSummaries(account, addresses);
+        renderList(addresses);
+        if (editingAddressId === address.id) {
+          resetForm();
+        }
+        showAlert('Address deleted.', 'info');
+      }
+    });
+
+    renderPage();
+  </script>
+  <script src="nav-auth.js"></script>
+</body>
+</html>

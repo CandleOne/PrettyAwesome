@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payments | Tee-Minus</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="registration-page account-page">
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="index.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="account.html" class="nav-btn" data-account-link>Account</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <main class="registration-main">
+    <section class="registration-card account-card account-utility-card">
+      <div class="admin-header-row">
+        <h1>Payments</h1>
+        <a href="account.html" class="success-link alt">Back to Account</a>
+      </div>
+      <p>Store masked payment references for faster repeat projects on this browser.</p>
+
+      <div id="payments-alert" class="account-alert" hidden></div>
+
+      <div id="payments-empty-state" class="registration-summary">
+        <p>No active account is loaded.</p>
+        <p>Sign in on your account page to manage payment methods.</p>
+        <div class="account-links compact-links">
+          <a href="account.html" class="success-link">Sign In</a>
+          <a href="registration.html" class="success-link alt">Create Account</a>
+        </div>
+      </div>
+
+      <div id="payments-authenticated" hidden>
+        <div class="account-grid">
+          <div class="registration-summary" id="payments-account-summary"></div>
+          <div class="registration-summary" id="payments-stats-summary"></div>
+        </div>
+
+        <div class="account-links compact-links">
+          <a href="address-book.html" class="success-link alt">Address Book</a>
+          <a href="order-history.html" class="success-link alt">Order History</a>
+          <a href="teeminus-order-form.html" class="success-link">Start a Quote</a>
+        </div>
+
+        <section class="account-section">
+          <div class="section-title-row">
+            <h2 class="account-subtitle">Saved Payment Method</h2>
+            <span class="field-note" id="payments-form-mode">Only masked card data is stored locally.</span>
+          </div>
+          <form class="registration-form" id="payments-form">
+            <div class="utility-form-grid cols-2">
+              <div>
+                <label for="payment-nickname">Nickname</label>
+                <input type="text" id="payment-nickname" placeholder="Office card, Personal Visa, Team AMEX">
+              </div>
+              <div>
+                <label for="payment-brand">Brand</label>
+                <select id="payment-brand">
+                  <option value="Visa">Visa</option>
+                  <option value="Mastercard">Mastercard</option>
+                  <option value="American Express">American Express</option>
+                  <option value="Discover">Discover</option>
+                  <option value="Corporate Card">Corporate Card</option>
+                </select>
+              </div>
+              <div>
+                <label for="payment-cardholder">Cardholder Name</label>
+                <input type="text" id="payment-cardholder" required>
+              </div>
+              <div>
+                <label for="payment-number">Card Number</label>
+                <input type="text" id="payment-number" inputmode="numeric" placeholder="Only the last 4 digits are retained">
+              </div>
+              <div>
+                <label for="payment-exp-month">Exp. Month</label>
+                <input type="text" id="payment-exp-month" inputmode="numeric" maxlength="2" placeholder="08" required>
+              </div>
+              <div>
+                <label for="payment-exp-year">Exp. Year</label>
+                <input type="text" id="payment-exp-year" inputmode="numeric" maxlength="4" placeholder="2028" required>
+              </div>
+              <div>
+                <label for="payment-billing-zip">Billing ZIP</label>
+                <input type="text" id="payment-billing-zip" inputmode="numeric" maxlength="10" placeholder="78701" required>
+              </div>
+              <div class="span-2">
+                <label class="checkbox-label" for="payment-default">
+                  <input type="checkbox" id="payment-default">
+                  Make this the default payment method for future orders
+                </label>
+              </div>
+            </div>
+            <div class="registration-actions">
+              <button type="submit">Save Payment Method</button>
+              <button type="button" class="btn-prev" id="payments-cancel-btn" hidden>Cancel Edit</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="account-section">
+          <h2 class="account-subtitle">Saved Methods</h2>
+          <p class="field-note">Full card numbers are not stored. This is a local browser convenience list only.</p>
+          <div id="payments-list" class="account-list"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-column">
+      <h1>Our Materials</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Ethics</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Legal Stuff</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    const alertEl = document.getElementById('payments-alert');
+    const emptyStateEl = document.getElementById('payments-empty-state');
+    const authedEl = document.getElementById('payments-authenticated');
+    const accountSummaryEl = document.getElementById('payments-account-summary');
+    const statsSummaryEl = document.getElementById('payments-stats-summary');
+    const listEl = document.getElementById('payments-list');
+    const formEl = document.getElementById('payments-form');
+    const formModeEl = document.getElementById('payments-form-mode');
+    const cancelBtn = document.getElementById('payments-cancel-btn');
+
+    const nicknameInput = document.getElementById('payment-nickname');
+    const brandInput = document.getElementById('payment-brand');
+    const cardholderInput = document.getElementById('payment-cardholder');
+    const numberInput = document.getElementById('payment-number');
+    const expMonthInput = document.getElementById('payment-exp-month');
+    const expYearInput = document.getElementById('payment-exp-year');
+    const billingZipInput = document.getElementById('payment-billing-zip');
+    const defaultInput = document.getElementById('payment-default');
+
+    let editingPaymentId = '';
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showAlert(message, tone) {
+      alertEl.textContent = message;
+      alertEl.className = `account-alert ${tone || 'info'}`;
+      alertEl.hidden = false;
+    }
+
+    function clearAlert() {
+      alertEl.hidden = true;
+      alertEl.textContent = '';
+      alertEl.className = 'account-alert';
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '-';
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString();
+    }
+
+    function getCurrentAccount() {
+      return window.TMAuth ? window.TMAuth.getCurrentAccount() : null;
+    }
+
+    function getCurrentData() {
+      return window.TMAuth ? window.TMAuth.getCurrentAccountData() : { paymentMethods: [] };
+    }
+
+    function resetForm() {
+      editingPaymentId = '';
+      formEl.reset();
+      brandInput.value = 'Visa';
+      formModeEl.textContent = 'Only masked card data is stored locally.';
+      cancelBtn.hidden = true;
+      numberInput.required = false;
+    }
+
+    function populateForm(method) {
+      editingPaymentId = method.id;
+      nicknameInput.value = method.nickname || '';
+      brandInput.value = method.brand || 'Visa';
+      cardholderInput.value = method.cardholder || '';
+      numberInput.value = '';
+      expMonthInput.value = method.expMonth || '';
+      expYearInput.value = method.expYear || '';
+      billingZipInput.value = method.billingZip || '';
+      defaultInput.checked = Boolean(method.isDefault);
+      formModeEl.textContent = `Editing a saved method ending in ${method.last4 || '----'}. Leave card number blank to keep the same last 4.`;
+      cancelBtn.hidden = false;
+      numberInput.required = false;
+      nicknameInput.focus();
+    }
+
+    function renderSignedOut() {
+      emptyStateEl.hidden = false;
+      authedEl.hidden = true;
+      resetForm();
+    }
+
+    function renderSummaries(account, methods) {
+      const defaultMethod = methods.find((item) => item.isDefault);
+      const roleCopy = account.role === 'print-shop'
+        ? 'Keep a local list of billing references for supplies, blanks, and rush jobs.'
+        : 'Keep your most-used billing methods ready for repeat project requests.';
+
+      accountSummaryEl.innerHTML = [
+        `<p><strong>${escapeHtml(account.name || account.accountName || 'Account')}</strong></p>`,
+        `<p>${escapeHtml(window.TMAuth.roleLabel(account.role))}</p>`,
+        `<p>${escapeHtml(account.email || '-')}</p>`,
+        `<p>${escapeHtml(roleCopy)}</p>`,
+      ].join('');
+
+      statsSummaryEl.innerHTML = [
+        '<p><strong>Payment Snapshot</strong></p>',
+        `<p>Total Saved: ${methods.length}</p>`,
+        `<p>Default: ${escapeHtml(defaultMethod ? `${defaultMethod.brand} •••• ${defaultMethod.last4}` : 'Not set')}</p>`,
+        `<p>Last Updated: ${escapeHtml(formatDate(methods[0] && methods[0].updatedAt))}</p>`,
+      ].join('');
+    }
+
+    function renderList(methods) {
+      if (!methods.length) {
+        listEl.innerHTML = '<div class="account-empty">No payment methods saved yet. Add one above to keep repeat orders moving faster.</div>';
+        return;
+      }
+
+      listEl.innerHTML = methods.map((method) => {
+        const nickname = method.nickname ? `<p>${escapeHtml(method.nickname)}</p>` : '';
+        return `
+          <article class="account-item-card">
+            <div class="account-item-head">
+              <div>
+                <h3>${escapeHtml(method.brand || 'Card')} •••• ${escapeHtml(method.last4 || '----')}</h3>
+                <p>${escapeHtml(method.cardholder || '')}</p>
+              </div>
+              <div class="account-badge-row">
+                ${method.isDefault ? '<span class="account-badge success">Default</span>' : ''}
+                <span class="account-badge">${escapeHtml(formatDate(method.updatedAt))}</span>
+              </div>
+            </div>
+            <div class="account-meta">
+              ${nickname}
+              <p>Expires ${escapeHtml(method.expMonth || '--')}/${escapeHtml(method.expYear || '----')}</p>
+              <p>Billing ZIP ${escapeHtml(method.billingZip || '-')}</p>
+            </div>
+            <div class="account-inline-actions">
+              <button type="button" data-action="edit" data-id="${escapeHtml(method.id)}">Edit</button>
+              <button type="button" data-action="default" data-id="${escapeHtml(method.id)}">Make Default</button>
+              <button type="button" data-action="delete" data-id="${escapeHtml(method.id)}">Delete</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderPage() {
+      clearAlert();
+      const account = getCurrentAccount();
+      if (!account) {
+        renderSignedOut();
+        return;
+      }
+
+      const data = getCurrentData();
+      const methods = data.paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      emptyStateEl.hidden = true;
+      authedEl.hidden = false;
+      renderSummaries(account, methods);
+      renderList(methods);
+      resetForm();
+    }
+
+    function buildPayload(existingMethod) {
+      const rawNumber = numberInput.value.replace(/\D/g, '');
+      const last4 = rawNumber ? rawNumber.slice(-4) : (existingMethod && existingMethod.last4) || '';
+      return {
+        nickname: nicknameInput.value,
+        brand: brandInput.value,
+        cardholder: cardholderInput.value,
+        last4,
+        expMonth: expMonthInput.value,
+        expYear: expYearInput.value,
+        billingZip: billingZipInput.value,
+        isDefault: defaultInput.checked,
+      };
+    }
+
+    formEl.addEventListener('submit', (event) => {
+      event.preventDefault();
+      clearAlert();
+
+      const account = getCurrentAccount();
+      if (!account) {
+        renderSignedOut();
+        return;
+      }
+
+      const data = getCurrentData();
+      const existingMethod = data.paymentMethods.find((item) => item.id === editingPaymentId);
+      const rawNumber = numberInput.value.replace(/\D/g, '');
+      if (!existingMethod && rawNumber.length < 4) {
+        numberInput.setCustomValidity('Enter at least the last 4 digits of the card number.');
+        numberInput.reportValidity();
+        return;
+      }
+      numberInput.setCustomValidity('');
+
+      const payload = buildPayload(existingMethod);
+      if (!payload.last4) {
+        numberInput.setCustomValidity('Enter at least the last 4 digits of the card number.');
+        numberInput.reportValidity();
+        return;
+      }
+
+      if (editingPaymentId) {
+        window.TMAuth.updatePaymentMethod(account.id, editingPaymentId, payload);
+        showAlert('Payment method updated.', 'success');
+      } else {
+        window.TMAuth.addPaymentMethod(account.id, payload);
+        showAlert('Payment method saved.', 'success');
+      }
+
+      const methods = getCurrentData().paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      renderSummaries(account, methods);
+      renderList(methods);
+      resetForm();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      clearAlert();
+      resetForm();
+    });
+
+    listEl.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+
+      clearAlert();
+      const account = getCurrentAccount();
+      if (!account) {
+        renderSignedOut();
+        return;
+      }
+
+      const methods = getCurrentData().paymentMethods;
+      const method = methods.find((item) => item.id === button.dataset.id);
+      if (!method) return;
+
+      if (button.dataset.action === 'edit') {
+        populateForm(method);
+        return;
+      }
+
+      if (button.dataset.action === 'default') {
+        window.TMAuth.updatePaymentMethod(account.id, method.id, { isDefault: true });
+        const updatedMethods = getCurrentData().paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+        renderSummaries(account, updatedMethods);
+        renderList(updatedMethods);
+        showAlert('Default payment method updated.', 'success');
+        return;
+      }
+
+      if (button.dataset.action === 'delete') {
+        if (!window.confirm('Delete this payment method from this browser?')) {
+          return;
+        }
+        window.TMAuth.deletePaymentMethod(account.id, method.id);
+        const updatedMethods = getCurrentData().paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+        renderSummaries(account, updatedMethods);
+        renderList(updatedMethods);
+        if (editingPaymentId === method.id) {
+          resetForm();
+        }
+        showAlert('Payment method deleted.', 'info');
+      }
+    });
+
+    renderPage();
+  </script>
+  <script src="nav-auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order History | Tee-Minus</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="registration-page account-page">
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="index.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="account.html" class="nav-btn" data-account-link>Account</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <main class="registration-main">
+    <section class="registration-card account-card account-utility-card">
+      <div class="admin-header-row">
+        <h1>Order History</h1>
+        <a href="account.html" class="success-link alt">Back to Account</a>
+      </div>
+      <p>Review saved quote requests and project records tied to this account on this browser.</p>
+
+      <div id="history-alert" class="account-alert info">
+        Quote requests submitted while signed in will appear here automatically.
+      </div>
+
+      <div id="history-empty-state" class="registration-summary">
+        <p>No active account is loaded.</p>
+        <p>Sign in on your account page to see order history for this browser session.</p>
+        <div class="account-links compact-links">
+          <a href="account.html" class="success-link">Sign In</a>
+          <a href="registration.html" class="success-link alt">Create Account</a>
+        </div>
+      </div>
+
+      <div id="history-authenticated" hidden>
+        <div class="account-grid">
+          <div class="registration-summary" id="history-account-summary"></div>
+          <div class="registration-summary" id="history-stats-summary"></div>
+        </div>
+
+        <div class="admin-metrics">
+          <div class="metric-card">
+            <h2 id="metric-total-orders">0</h2>
+            <p>Total Records</p>
+          </div>
+          <div class="metric-card">
+            <h2 id="metric-rush-orders">0</h2>
+            <p>Rush Jobs</p>
+          </div>
+          <div class="metric-card">
+            <h2 id="metric-shipping-orders">0</h2>
+            <p>Shipping Requests</p>
+          </div>
+          <div class="metric-card">
+            <h2 id="metric-pieces">0</h2>
+            <p>Total Pieces</p>
+          </div>
+        </div>
+
+        <div class="account-links compact-links">
+          <a href="address-book.html" class="success-link alt">Address Book</a>
+          <a href="payments.html" class="success-link alt">Payments</a>
+          <a href="teeminus-order-form.html" class="success-link">Start a Quote</a>
+        </div>
+
+        <section class="account-section">
+          <h2 class="account-subtitle">Filters</h2>
+          <div class="utility-form-grid cols-2 compact-grid">
+            <div>
+              <label for="history-search">Search</label>
+              <input type="text" id="history-search" placeholder="Project name, reference, notes">
+            </div>
+            <div>
+              <label for="history-status">Status</label>
+              <select id="history-status">
+                <option value="">All statuses</option>
+                <option value="Quote Requested">Quote Requested</option>
+                <option value="In Review">In Review</option>
+                <option value="Approved">Approved</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="account-section">
+          <div class="section-title-row">
+            <h2 class="account-subtitle">Saved History</h2>
+            <span class="field-note" id="history-count-label"></span>
+          </div>
+          <div id="history-list" class="account-list"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-column">
+      <h1>Our Materials</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Ethics</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Legal Stuff</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    const emptyStateEl = document.getElementById('history-empty-state');
+    const authedEl = document.getElementById('history-authenticated');
+    const accountSummaryEl = document.getElementById('history-account-summary');
+    const statsSummaryEl = document.getElementById('history-stats-summary');
+    const listEl = document.getElementById('history-list');
+    const countLabelEl = document.getElementById('history-count-label');
+    const searchInput = document.getElementById('history-search');
+    const statusInput = document.getElementById('history-status');
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return '-';
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return '-';
+      return date.toLocaleString();
+    }
+
+    function getCurrentAccount() {
+      return window.TMAuth ? window.TMAuth.getCurrentAccount() : null;
+    }
+
+    function getCurrentData() {
+      return window.TMAuth ? window.TMAuth.getCurrentAccountData() : { orders: [] };
+    }
+
+    function renderSignedOut() {
+      emptyStateEl.hidden = false;
+      authedEl.hidden = true;
+    }
+
+    function renderSummaries(account, orders) {
+      const roleCopy = account.role === 'print-shop'
+        ? 'Track local intake records, rush requests, and saved project specs for this partner account.'
+        : 'Track quote requests and project details submitted from this browser while signed in.';
+      const latestOrder = orders[0];
+
+      accountSummaryEl.innerHTML = [
+        `<p><strong>${escapeHtml(account.name || account.accountName || 'Account')}</strong></p>`,
+        `<p>${escapeHtml(window.TMAuth.roleLabel(account.role))}</p>`,
+        `<p>${escapeHtml(account.email || '-')}</p>`,
+        `<p>${escapeHtml(roleCopy)}</p>`,
+      ].join('');
+
+      statsSummaryEl.innerHTML = [
+        '<p><strong>History Snapshot</strong></p>',
+        `<p>Total Records: ${orders.length}</p>`,
+        `<p>Latest Project: ${escapeHtml(latestOrder ? latestOrder.title : 'None yet')}</p>`,
+        `<p>Last Updated: ${escapeHtml(formatDateTime(latestOrder && latestOrder.updatedAt))}</p>`,
+      ].join('');
+    }
+
+    function renderMetrics(orders) {
+      const rushCount = orders.filter((order) => order.details && order.details.rushOrder).length;
+      const shippingCount = orders.filter((order) => order.deliveryMethod === 'shipping').length;
+      const totalPieces = orders.reduce((sum, order) => sum + Number(order.quantity || 0), 0);
+      document.getElementById('metric-total-orders').textContent = String(orders.length);
+      document.getElementById('metric-rush-orders').textContent = String(rushCount);
+      document.getElementById('metric-shipping-orders').textContent = String(shippingCount);
+      document.getElementById('metric-pieces').textContent = String(totalPieces);
+    }
+
+    function matchesFilters(order) {
+      const search = searchInput.value.trim().toLowerCase();
+      const status = statusInput.value;
+      if (status && order.status !== status) {
+        return false;
+      }
+      if (!search) {
+        return true;
+      }
+
+      const haystack = [
+        order.title,
+        order.summary,
+        order.reference,
+        order.deliveryMethod,
+        order.details && order.details.shirtColor,
+        order.details && order.details.placement,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(search);
+    }
+
+    function renderList(orders, accountRole) {
+      const filtered = orders.filter(matchesFilters);
+      countLabelEl.textContent = `${filtered.length} of ${orders.length} records shown`;
+
+      if (!filtered.length) {
+        const emptyCopy = accountRole === 'print-shop'
+          ? 'No saved project history matches this filter yet. Submit a quote while signed in to create local intake records.'
+          : 'No saved quote history matches this filter yet. Submit a quote while signed in to create local order records.';
+        listEl.innerHTML = `<div class="account-empty">${escapeHtml(emptyCopy)}</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map((order) => {
+        const detailBits = [
+          order.details && order.details.shirtColor ? `Shirt Color: ${order.details.shirtColor}` : '',
+          order.details && order.details.placement ? `Placement: ${order.details.placement}` : '',
+          order.deliveryMethod ? `Delivery: ${order.deliveryMethod}` : '',
+          order.quantity ? `Pieces: ${order.quantity}` : '',
+        ].filter(Boolean).map((item) => `<span class="account-badge">${escapeHtml(item)}</span>`).join('');
+
+        return `
+          <article class="account-item-card">
+            <div class="account-item-head">
+              <div>
+                <h3>${escapeHtml(order.title || 'Custom Quote Request')}</h3>
+                <p>${escapeHtml(order.reference || 'No file reference available')}</p>
+              </div>
+              <div class="account-badge-row">
+                <span class="account-badge success">${escapeHtml(order.status || 'Quote Requested')}</span>
+                <span class="account-badge">${escapeHtml(formatDateTime(order.createdAt))}</span>
+              </div>
+            </div>
+            ${order.summary ? `<p>${escapeHtml(order.summary)}</p>` : ''}
+            <div class="account-badge-row">${detailBits}</div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderPage() {
+      const account = getCurrentAccount();
+      if (!account) {
+        renderSignedOut();
+        return;
+      }
+
+      const orders = getCurrentData().orders.slice().sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      emptyStateEl.hidden = true;
+      authedEl.hidden = false;
+      renderSummaries(account, orders);
+      renderMetrics(orders);
+      renderList(orders, account.role);
+    }
+
+    searchInput.addEventListener('input', renderPage);
+    statusInput.addEventListener('change', renderPage);
+
+    renderPage();
+  </script>
+  <script src="nav-auth.js"></script>
+</body>
+</html>
