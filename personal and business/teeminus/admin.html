@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tee-Minus Admin Panel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="registration-page admin-page">
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="index.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="account.html" class="nav-btn">Account</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <main class="registration-main">
+    <section class="registration-card admin-login-card" id="admin-login-card">
+      <h1>Admin Sign In</h1>
+      <p>Sign in to view account metrics and manage registrations.</p>
+
+      <form class="registration-form" id="admin-login-form">
+        <label for="admin-email">Admin Email</label>
+        <input type="email" id="admin-email" required>
+
+        <label for="admin-password">Admin Password</label>
+        <input type="password" id="admin-password" required>
+
+        <div class="registration-actions">
+          <button type="submit">Enter Admin Panel</button>
+        </div>
+      </form>
+      <p class="field-note">Demo credentials: admin@teeminus.local / admin123</p>
+    </section>
+
+    <section class="registration-card admin-dashboard" id="admin-dashboard" hidden>
+      <div class="admin-header-row">
+        <h1>Admin Panel</h1>
+        <button type="button" class="btn-prev" id="admin-logout-btn">Log Out</button>
+      </div>
+      <p>Track user metrics and manage customer + print shop accounts.</p>
+
+      <div class="admin-metrics" id="admin-metrics"></div>
+
+      <div class="admin-controls">
+        <label for="account-search">Search</label>
+        <input type="text" id="account-search" placeholder="Name, email, account, location">
+
+        <label for="account-role-filter">Role Filter</label>
+        <select id="account-role-filter">
+          <option value="all">All Roles</option>
+          <option value="customer">Customer</option>
+          <option value="print-shop">Print Shop Partner</option>
+        </select>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Created</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Account</th>
+              <th>Location</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-account-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-column">
+      <h1>Our Materials</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Ethics</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Legal Stuff</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+  </div>
+
+  <script>
+    const ACCOUNTS_KEY = 'teeminus_accounts_v1';
+    const SESSION_KEY = 'teeminus_admin_session_v1';
+    const ADMIN_EMAIL = 'admin@teeminus.local';
+    const ADMIN_PASSWORD = 'admin123';
+
+    const loginCard = document.getElementById('admin-login-card');
+    const dashboard = document.getElementById('admin-dashboard');
+    const loginForm = document.getElementById('admin-login-form');
+    const logoutBtn = document.getElementById('admin-logout-btn');
+
+    const metricsEl = document.getElementById('admin-metrics');
+    const tableBody = document.getElementById('admin-account-table-body');
+    const searchInput = document.getElementById('account-search');
+    const roleFilter = document.getElementById('account-role-filter');
+
+    function readAccounts() {
+      try {
+        const raw = localStorage.getItem(ACCOUNTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function writeAccounts(accounts) {
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '-';
+      return d.toLocaleDateString();
+    }
+
+    function computeMetrics(accounts) {
+      const total = accounts.length;
+      const customers = accounts.filter((a) => a.role === 'customer').length;
+      const printShops = accounts.filter((a) => a.role === 'print-shop').length;
+      const active = accounts.filter((a) => a.status !== 'suspended').length;
+      const suspended = accounts.filter((a) => a.status === 'suspended').length;
+      const sameDayFulfillment = accounts.filter((a) => a.printShop && a.printShop.sameDayFulfillmentAvailable).length;
+
+      return [
+        { label: 'Total Accounts', value: total },
+        { label: 'Customers', value: customers },
+        { label: 'Print Shops', value: printShops },
+        { label: 'Active', value: active },
+        { label: 'Suspended', value: suspended },
+        { label: 'Same-Day Fulfillment Shops', value: sameDayFulfillment },
+      ];
+    }
+
+    function renderMetrics(accounts) {
+      const metrics = computeMetrics(accounts);
+      metricsEl.innerHTML = metrics
+        .map((m) => `<article class="metric-card"><h2>${m.value}</h2><p>${m.label}</p></article>`)
+        .join('');
+    }
+
+    function matchesFilters(account) {
+      const roleValue = roleFilter.value;
+      if (roleValue !== 'all' && account.role !== roleValue) return false;
+
+      const query = searchInput.value.trim().toLowerCase();
+      if (!query) return true;
+
+      const haystack = [
+        account.name,
+        account.email,
+        account.accountName,
+        account.role,
+        account.status,
+        account.printShop && account.printShop.location,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(query);
+    }
+
+    function renderTable(accounts) {
+      const filtered = accounts.filter(matchesFilters);
+
+      if (!filtered.length) {
+        tableBody.innerHTML = '<tr><td colspan="8">No accounts match your filters.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = filtered
+        .map((account) => {
+          const roleLabel = account.role === 'print-shop' ? 'Print Shop Partner' : 'Customer';
+          const location = account.printShop && account.printShop.location ? account.printShop.location : '-';
+          const status = account.status || 'active';
+          return `
+            <tr>
+              <td>${formatDate(account.createdAt)}</td>
+              <td>${account.name || '-'}</td>
+              <td>${account.email || '-'}</td>
+              <td>${roleLabel}</td>
+              <td>${status}</td>
+              <td>${account.accountName || '-'}</td>
+              <td>${location}</td>
+              <td>
+                <div class="admin-actions-inline">
+                  <button type="button" data-action="toggle" data-id="${account.id}">${status === 'suspended' ? 'Activate' : 'Suspend'}</button>
+                  <button type="button" data-action="delete" data-id="${account.id}">Delete</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+
+    function renderDashboard() {
+      const accounts = readAccounts();
+      renderMetrics(accounts);
+      renderTable(accounts);
+    }
+
+    function setAuthed(isAuthed) {
+      loginCard.hidden = isAuthed;
+      dashboard.hidden = !isAuthed;
+      if (isAuthed) {
+        renderDashboard();
+      }
+    }
+
+    loginForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const email = document.getElementById('admin-email').value.trim().toLowerCase();
+      const password = document.getElementById('admin-password').value;
+
+      if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+        document.getElementById('admin-password').setCustomValidity('Invalid admin credentials.');
+        document.getElementById('admin-password').reportValidity();
+        return;
+      }
+
+      document.getElementById('admin-password').setCustomValidity('');
+      sessionStorage.setItem(SESSION_KEY, '1');
+      setAuthed(true);
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem(SESSION_KEY);
+      setAuthed(false);
+      loginForm.reset();
+    });
+
+    searchInput.addEventListener('input', renderDashboard);
+    roleFilter.addEventListener('change', renderDashboard);
+
+    tableBody.addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-action]');
+      if (!btn) return;
+
+      const action = btn.getAttribute('data-action');
+      const id = btn.getAttribute('data-id');
+      const accounts = readAccounts();
+      const idx = accounts.findIndex((a) => a.id === id);
+      if (idx === -1) return;
+
+      if (action === 'toggle') {
+        const current = accounts[idx].status || 'active';
+        accounts[idx].status = current === 'suspended' ? 'active' : 'suspended';
+      }
+
+      if (action === 'delete') {
+        const ok = window.confirm('Delete this account? This cannot be undone.');
+        if (!ok) return;
+        accounts.splice(idx, 1);
+      }
+
+      writeAccounts(accounts);
+      renderDashboard();
+    });
+
+    const isAuthed = sessionStorage.getItem(SESSION_KEY) === '1';
+    setAuthed(isAuthed);
+  </script>
+</body>
+</html>

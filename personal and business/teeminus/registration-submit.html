@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registration Complete | Tee-Minus</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="registration-page">
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="index.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="account.html" class="nav-btn">Account</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <main class="registration-main">
+    <section class="registration-card registration-success-card">
+      <h1>Registration Submitted</h1>
+      <p id="registration-success-message">Your account has been added to Tee-Minus.</p>
+
+      <div class="registration-summary" id="registration-summary"></div>
+
+      <div class="registration-actions">
+        <a href="index.html" class="success-link">Back to Home</a>
+        <a href="registration.html" class="success-link alt">Register Another</a>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-column">
+      <h1>Our Materials</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Ethics</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Legal Stuff</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+  </div>
+
+  <script>
+    const ACCOUNTS_KEY = 'teeminus_accounts_v1';
+    const lastId = sessionStorage.getItem('teeminus_last_registration_id');
+    const summaryEl = document.getElementById('registration-summary');
+    const messageEl = document.getElementById('registration-success-message');
+
+    function readAccounts() {
+      try {
+        const raw = localStorage.getItem(ACCOUNTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    const accounts = readAccounts();
+    const account = accounts.find((item) => item.id === lastId) || null;
+
+    if (!account) {
+      messageEl.textContent = 'Account saved. You can now continue using Tee-Minus.';
+    } else {
+      const roleText = account.role === 'print-shop' ? 'Print Shop Partner' : 'Customer';
+      messageEl.textContent = `Welcome, ${account.name}. Your ${roleText} account is ready.`;
+
+      const lines = [
+        `Name: ${account.name}`,
+        `Email: ${account.email}`,
+        `Role: ${roleText}`,
+        `Account: ${account.accountName}`,
+      ];
+
+      if (account.printShop) {
+        lines.push(`Location: ${account.printShop.location || 'Not provided'}`);
+        lines.push(`MOQ: ${account.printShop.minimumOrderQuantity || 0}`);
+      }
+
+      summaryEl.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
+    }
+  </script>
+</body>
+</html>

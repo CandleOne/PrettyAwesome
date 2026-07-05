@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Account | Tee-Minus</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="registration-page account-page">
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="index.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="account.html" class="nav-btn">Account</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <main class="registration-main">
+    <section class="registration-card account-card">
+      <div class="admin-header-row">
+        <h1>Your Account</h1>
+        <button type="button" class="btn-prev" id="account-signout-btn">Sign Out</button>
+      </div>
+      <p>View your registration details and account status.</p>
+
+      <div class="registration-summary" id="account-summary"></div>
+
+      <div id="print-shop-summary" class="registration-summary" hidden></div>
+
+      <h2 class="account-subtitle">Find My Account</h2>
+      <form class="registration-form" id="account-lookup-form">
+        <label for="lookup-email">Email</label>
+        <input type="email" id="lookup-email" required>
+
+        <label for="lookup-account-name">Username or Organization Name</label>
+        <input type="text" id="lookup-account-name" required>
+
+        <div class="registration-actions">
+          <button type="submit">Load Account</button>
+          <a href="registration.html" class="success-link alt">Create New Account</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-column">
+      <h1>Our Materials</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Ethics</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+
+    <div class="footer-column">
+      <h1>Our Legal Stuff</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+  </div>
+
+  <script>
+    const ACCOUNTS_KEY = 'teeminus_accounts_v1';
+    const CURRENT_USER_KEY = 'teeminus_current_user_id';
+
+    const summaryEl = document.getElementById('account-summary');
+    const printShopSummaryEl = document.getElementById('print-shop-summary');
+    const lookupForm = document.getElementById('account-lookup-form');
+    const signoutBtn = document.getElementById('account-signout-btn');
+
+    function readAccounts() {
+      try {
+        const raw = localStorage.getItem(ACCOUNTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function roleLabel(role) {
+      return role === 'print-shop' ? 'Print Shop Partner' : 'Customer';
+    }
+
+    function setCurrentUserId(id) {
+      if (id) {
+        sessionStorage.setItem(CURRENT_USER_KEY, id);
+      } else {
+        sessionStorage.removeItem(CURRENT_USER_KEY);
+      }
+    }
+
+    function getCurrentAccount() {
+      const accounts = readAccounts();
+      const id = sessionStorage.getItem(CURRENT_USER_KEY);
+      if (id) {
+        const found = accounts.find((a) => a.id === id);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function renderNoAccount() {
+      summaryEl.innerHTML = [
+        '<p>No active account is loaded.</p>',
+        '<p>Use the form below to find your account.</p>',
+      ].join('');
+      printShopSummaryEl.hidden = true;
+      printShopSummaryEl.innerHTML = '';
+    }
+
+    function renderAccount(account) {
+      if (!account) {
+        renderNoAccount();
+        return;
+      }
+
+      const status = account.status || 'active';
+      summaryEl.innerHTML = [
+        `<p>Name: ${account.name || '-'}</p>`,
+        `<p>Email: ${account.email || '-'}</p>`,
+        `<p>Role: ${roleLabel(account.role)}</p>`,
+        `<p>Account: ${account.accountName || '-'}</p>`,
+        `<p>Status: ${status}</p>`,
+      ].join('');
+
+      if (account.printShop) {
+        const methods = (account.printShop.fulfillmentMethods || []).join(', ') || 'Not provided';
+        printShopSummaryEl.innerHTML = [
+          '<p><strong>Print Shop Details</strong></p>',
+          `<p>Location: ${account.printShop.location || '-'}</p>`,
+          `<p>Minimum Order Quantity: ${account.printShop.minimumOrderQuantity || 0}</p>`,
+          `<p>Same Day Samples: ${account.printShop.sameDaySamplesAvailable ? 'Yes' : 'No'}</p>`,
+          `<p>Same Day Fulfillment: ${account.printShop.sameDayFulfillmentAvailable ? 'Yes' : 'No'}</p>`,
+          `<p>Same Day Max Quantity: ${account.printShop.sameDayFulfillmentMaxQuantity || 0}</p>`,
+          `<p>Fulfillment Methods: ${methods}</p>`,
+        ].join('');
+        printShopSummaryEl.hidden = false;
+      } else {
+        printShopSummaryEl.hidden = true;
+        printShopSummaryEl.innerHTML = '';
+      }
+    }
+
+    lookupForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const email = document.getElementById('lookup-email').value.trim().toLowerCase();
+      const accountName = document.getElementById('lookup-account-name').value.trim().toLowerCase();
+
+      const accounts = readAccounts();
+      const found = accounts.find((a) =>
+        (a.email || '').toLowerCase() === email &&
+        (a.accountName || '').toLowerCase() === accountName
+      );
+
+      if (!found) {
+        document.getElementById('lookup-account-name').setCustomValidity('No account matched that email and account name.');
+        document.getElementById('lookup-account-name').reportValidity();
+        return;
+      }
+
+      document.getElementById('lookup-account-name').setCustomValidity('');
+      setCurrentUserId(found.id);
+      renderAccount(found);
+    });
+
+    signoutBtn.addEventListener('click', () => {
+      setCurrentUserId('');
+      renderNoAccount();
+    });
+
+    renderAccount(getCurrentAccount());
+  </script>
+</body>
+</html>

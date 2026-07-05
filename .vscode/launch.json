@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "type": "chrome",
+            "name": "http://127.0.0.1:3000/personal%20and%20business/teeminus/registration.html?serverWindowId=81e9de5e-c0e0-4815-a96f-2059fd4a8671",
+            "request": "launch",
+            "url": "http://127.0.0.1:3000/personal%20and%20business/teeminus/registration.html?serverWindowId=81e9de5e-c0e0-4815-a96f-2059fd4a8671"
+        }
+    ]
+}
