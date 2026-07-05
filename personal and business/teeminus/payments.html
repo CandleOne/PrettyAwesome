@@ -136,6 +136,7 @@
     const formModeEl = document.getElementById('payments-form-mode');
     const processorStatusEl = document.getElementById('payments-processor-status');
     const processorErrorEl = document.getElementById('payment-element-error');
+    const paymentElementHostEl = document.getElementById('payment-element');
     const submitBtn = document.getElementById('payments-submit-btn');
     const resetBtn = document.getElementById('payments-reset-btn');
 
@@ -148,6 +149,8 @@
     let stripeElements = null;
     let stripeCard = null;
     let paymentsConfig = null;
+    let activeSetupCustomerId = '';
+    let activeSetupClientSecret = '';
     let busy = false;
 
     function escapeHtml(value) {
@@ -227,9 +230,19 @@
         }
         field.disabled = !enabled || busy;
       });
-      if (stripeCard) {
+      if (stripeCard && typeof stripeCard.update === 'function') {
         stripeCard.update({ disabled: !enabled || busy });
       }
+    }
+
+    function setCardMountState(stateText, isError) {
+      paymentElementHostEl.dataset.state = isError ? 'error' : 'loading';
+      paymentElementHostEl.dataset.stateText = stateText;
+    }
+
+    function clearCardMountState() {
+      delete paymentElementHostEl.dataset.state;
+      delete paymentElementHostEl.dataset.stateText;
     }
 
     function resetForm() {
@@ -239,6 +252,18 @@
       if (stripeCard) {
         stripeCard.clear();
       }
+    }
+
+    function teardownPaymentElement() {
+      if (stripeCard && typeof stripeCard.unmount === 'function') {
+        stripeCard.unmount();
+      }
+      stripeCard = null;
+      stripeElements = null;
+      activeSetupCustomerId = '';
+      activeSetupClientSecret = '';
+      paymentElementHostEl.innerHTML = '';
+      clearCardMountState();
     }
 
     function renderSignedOut() {
@@ -344,20 +369,68 @@
       return result;
     }
 
-    async function ensureStripeReady() {
+    function normalizeServerMethod(remoteMethod, localMethod, fallbackLocal) {
+      const local = localMethod || fallbackLocal || {};
+      return {
+        ...local,
+        brand: capitalizeBrand(remoteMethod.brand),
+        last4: remoteMethod.last4 || '',
+        expMonth: remoteMethod.expMonth ? String(remoteMethod.expMonth).padStart(2, '0') : '',
+        expYear: remoteMethod.expYear ? String(remoteMethod.expYear) : '',
+        funding: remoteMethod.funding || '',
+        processor: 'stripe',
+        processorCustomerId: activeSetupCustomerId || local.processorCustomerId || '',
+        processorPaymentMethodId: remoteMethod.id,
+      };
+    }
+
+    async function syncPaymentMethodsFromServer(account, customerId, pendingLocal) {
+      const serverState = await fetchJson('/payments/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId }),
+      });
+
+      const currentData = getCurrentData();
+      const currentMethods = Array.isArray(currentData.paymentMethods) ? currentData.paymentMethods : [];
+      const mergedMethods = serverState.paymentMethods.map((remoteMethod) => {
+        const localMethod = currentMethods.find((item) => item.processorPaymentMethodId === remoteMethod.id);
+        const fallbackLocal = pendingLocal && pendingLocal.processorPaymentMethodId === remoteMethod.id ? pendingLocal : null;
+        return {
+          ...normalizeServerMethod(remoteMethod, localMethod, fallbackLocal),
+          id: (localMethod && localMethod.id) || (fallbackLocal && fallbackLocal.id) || `pay_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+          nickname: (localMethod && localMethod.nickname) || (fallbackLocal && fallbackLocal.nickname) || '',
+          cardholder: (localMethod && localMethod.cardholder) || (fallbackLocal && fallbackLocal.cardholder) || cardholderInput.value,
+          billingZip: (localMethod && localMethod.billingZip) || (fallbackLocal && fallbackLocal.billingZip) || billingZipInput.value,
+          isDefault: remoteMethod.id === serverState.defaultPaymentMethodId,
+          createdAt: (localMethod && localMethod.createdAt) || (fallbackLocal && fallbackLocal.createdAt) || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      window.TMAuth.writeAccountData(account.id, {
+        ...currentData,
+        paymentProfile: {
+          provider: 'stripe',
+          customerId: serverState.customerId,
+        },
+        paymentMethods: mergedMethods,
+      });
+
+      return getCurrentData();
+    }
+
+    async function ensureStripeReady(forceRefresh) {
       if (!window.Stripe) {
         updateProcessorStatus('Stripe.js did not load. Check network access and refresh this page.', 'error');
         setFormEnabled(false);
         return false;
       }
 
-      if (stripeClient && stripeCard) {
-        setFormEnabled(true);
-        return true;
-      }
-
       try {
-        paymentsConfig = await fetchJson('/payments/config');
+        if (!paymentsConfig || forceRefresh) {
+          paymentsConfig = await fetchJson('/payments/config');
+        }
       } catch (error) {
         updateProcessorStatus(`Could not reach the payment processor config endpoint: ${error.message}`, 'error');
         setFormEnabled(false);
@@ -370,8 +443,64 @@
         return false;
       }
 
-      stripeClient = window.Stripe(paymentsConfig.publishableKey);
-      stripeElements = stripeClient.elements();
+      if (!stripeClient) {
+        stripeClient = window.Stripe(paymentsConfig.publishableKey);
+      }
+
+      const account = getCurrentAccount();
+      if (!account) {
+        setFormEnabled(false);
+        return false;
+      }
+
+      const paymentProfile = getPaymentProfile();
+      let setupIntent;
+      try {
+        setupIntent = await fetchJson('/payments/setup-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accountId: account.id,
+            role: account.role,
+            email: account.email,
+            name: account.name || account.accountName,
+            customerId: paymentProfile && paymentProfile.customerId ? paymentProfile.customerId : '',
+          }),
+        });
+      } catch (error) {
+        updateProcessorStatus(`Could not initialize secure card setup: ${error.message}`, 'error');
+        showProcessorError('Stripe setup failed. Check your Stripe keys and server logs, then refresh.');
+        setFormEnabled(false);
+        return false;
+      }
+
+      if (window.TMAuth.setPaymentProfile) {
+        window.TMAuth.setPaymentProfile(account.id, {
+          provider: 'stripe',
+          customerId: setupIntent.customerId,
+        });
+      }
+
+      if (!forceRefresh && stripeCard && activeSetupCustomerId === setupIntent.customerId) {
+        setFormEnabled(true);
+        return true;
+      }
+
+      teardownPaymentElement();
+      activeSetupCustomerId = setupIntent.customerId;
+      activeSetupClientSecret = setupIntent.clientSecret;
+      setCardMountState('Loading secure Stripe card field...', false);
+      updateProcessorStatus('Initializing secure card field...', 'info');
+      stripeElements = stripeClient.elements({
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorText: '#000000',
+            colorDanger: '#7a1111',
+            fontFamily: 'Courier New, Courier, monospace',
+          },
+        }
+      });
       stripeCard = stripeElements.create('card', {
         hidePostalCode: true,
         style: {
@@ -388,7 +517,7 @@
           },
         },
       });
-      stripeCard.mount('#payment-element');
+      stripeCard.mount(paymentElementHostEl);
       stripeCard.on('change', (event) => {
         if (event.error) {
           showProcessorError(event.error.message);
@@ -397,7 +526,20 @@
         }
       });
 
-      updateProcessorStatus('Secure card entry is live through Stripe. Tee-Minus stores only tokenized payment references.', 'success');
+      stripeCard.on('ready', () => {
+        clearCardMountState();
+        updateProcessorStatus('Secure card entry is live through Stripe. Tee-Minus stores only tokenized payment references.', 'success');
+      });
+
+      // If ad blockers/privacy controls block Stripe iframes, keep the user out of a silent blank state.
+      setTimeout(() => {
+        if (stripeCard && paymentElementHostEl.querySelector('iframe')) {
+          return;
+        }
+        setCardMountState('Secure card field failed to load. Disable blockers for js.stripe.com and refresh.', true);
+        updateProcessorStatus('Stripe card field did not finish loading.', 'error');
+        showProcessorError('Could not render Stripe card input. Allow Stripe scripts/frames and reload the page.');
+      }, 2200);
       setFormEnabled(true);
       return true;
     }
@@ -439,75 +581,67 @@
       }
 
       const data = getCurrentData();
-      const paymentProfile = data.paymentProfile || null;
       const shouldBeDefault = defaultInput.checked || !data.paymentMethods.length;
 
       setBusy(true, 'Securing Card...');
       try {
-        const setupIntent = await fetchJson('/payments/setup-intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            accountId: account.id,
-            role: account.role,
-            email: account.email,
-            name: cardholderInput.value || account.name || account.accountName,
-            customerId: paymentProfile && paymentProfile.customerId ? paymentProfile.customerId : '',
-          }),
-        });
-
-        if (window.TMAuth.setPaymentProfile) {
-          window.TMAuth.setPaymentProfile(account.id, {
-            provider: 'stripe',
-            customerId: setupIntent.customerId,
-          });
+        const stripeReady = await ensureStripeReady();
+        if (!stripeReady || !stripeCard) {
+          throw new Error('Stripe payment form is not ready yet.');
         }
 
-        const paymentMethodResult = await stripeClient.createPaymentMethod({
-          type: 'card',
-          card: stripeCard,
-          billing_details: {
-            name: cardholderInput.value,
-            email: account.email,
-            address: {
-              postal_code: billingZipInput.value,
+        const confirmed = await stripeClient.confirmCardSetup(activeSetupClientSecret, {
+          payment_method: {
+            card: stripeCard,
+            billing_details: {
+              name: cardholderInput.value,
+              email: account.email,
+              address: {
+                postal_code: billingZipInput.value,
+              },
             },
           },
-        });
-
-        if (paymentMethodResult.error) {
-          throw new Error(paymentMethodResult.error.message || 'Unable to tokenize card details.');
-        }
-
-        const confirmed = await stripeClient.confirmCardSetup(setupIntent.clientSecret, {
-          payment_method: paymentMethodResult.paymentMethod.id,
         });
 
         if (confirmed.error) {
           throw new Error(confirmed.error.message || 'Stripe could not save this card.');
         }
 
+        if (!confirmed.setupIntent || !confirmed.setupIntent.payment_method) {
+          throw new Error('Stripe did not return a saved payment method.');
+        }
+
+        const paymentMethodId = String(confirmed.setupIntent.payment_method);
+        const pendingLocal = {
+          id: `pay_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+          nickname: nicknameInput.value,
+          cardholder: cardholderInput.value,
+          billingZip: billingZipInput.value,
+          processor: 'stripe',
+          processorCustomerId: activeSetupCustomerId,
+          processorPaymentMethodId: paymentMethodId,
+          isDefault: shouldBeDefault,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
         if (shouldBeDefault) {
           await fetchJson('/payments/default', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              customerId: setupIntent.customerId,
-              paymentMethodId: paymentMethodResult.paymentMethod.id,
+              customerId: activeSetupCustomerId,
+              paymentMethodId,
             }),
           });
         }
 
-        window.TMAuth.addPaymentMethod(
-          account.id,
-          buildLocalPaymentRecord(paymentMethodResult.paymentMethod, setupIntent.customerId, shouldBeDefault),
-        );
-
-        const updatedData = getCurrentData();
+        const updatedData = await syncPaymentMethodsFromServer(account, activeSetupCustomerId, pendingLocal);
         const methods = updatedData.paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
         renderSummaries(account, methods, updatedData.paymentProfile || null);
         renderList(methods);
         resetForm();
+        await ensureStripeReady(true);
         showAlert('Payment method saved securely with Stripe.', 'success');
       } catch (error) {
         showProcessorError(error.message);
@@ -552,8 +686,7 @@
               paymentMethodId: method.processorPaymentMethodId,
             }),
           });
-          window.TMAuth.updatePaymentMethod(account.id, method.id, { isDefault: true });
-          const updatedData = getCurrentData();
+          const updatedData = await syncPaymentMethodsFromServer(account, paymentProfile.customerId);
           const updatedMethods = updatedData.paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
           renderSummaries(account, updatedMethods, updatedData.paymentProfile || null);
           renderList(updatedMethods);
@@ -580,11 +713,13 @@
               body: JSON.stringify({ paymentMethodId: method.processorPaymentMethodId }),
             });
           }
-          window.TMAuth.deletePaymentMethod(account.id, method.id);
-          const updatedData = getCurrentData();
+          const updatedData = paymentProfile && paymentProfile.customerId
+            ? await syncPaymentMethodsFromServer(account, paymentProfile.customerId)
+            : (window.TMAuth.deletePaymentMethod(account.id, method.id), getCurrentData());
           const updatedMethods = updatedData.paymentMethods.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
           renderSummaries(account, updatedMethods, updatedData.paymentProfile || null);
           renderList(updatedMethods);
+          await ensureStripeReady(true);
           showAlert('Payment method removed.', 'info');
         } catch (error) {
           showAlert(`Could not remove the payment method: ${error.message}`, 'error');
@@ -595,10 +730,11 @@
     }
 
     formEl.addEventListener('submit', savePaymentMethod);
-    resetBtn.addEventListener('click', () => {
+    resetBtn.addEventListener('click', async () => {
       clearAlert();
       clearProcessorError();
       resetForm();
+      await ensureStripeReady(true);
     });
     listEl.addEventListener('click', handleMethodAction);
 

@@ -20,6 +20,25 @@ ROOT = Path(__file__).resolve().parent
 QUOTE_DIR = ROOT / "quote_requests"
 QUOTE_DIR.mkdir(exist_ok=True)
 
+
+def load_local_env(env_path: Path) -> None:
+    if not env_path.exists() or not env_path.is_file():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+load_local_env(ROOT / ".env")
+
 CLOUDINARY_CLOUD  = os.environ.get("CLOUDINARY_CLOUD_NAME", "")
 CLOUDINARY_KEY    = os.environ.get("CLOUDINARY_API_KEY", "")
 CLOUDINARY_SECRET = os.environ.get("CLOUDINARY_API_SECRET", "")
@@ -231,7 +250,7 @@ def create_setup_intent(payload: dict) -> dict:
     customer = get_or_create_stripe_customer(payload)
     setup_intent = stripe.SetupIntent.create(
         customer=customer.id,
-        automatic_payment_methods={"enabled": True},
+        payment_method_types=["card"],
         usage="off_session",
         metadata={
             "teeminusAccountId": (payload.get("accountId") or "").strip(),

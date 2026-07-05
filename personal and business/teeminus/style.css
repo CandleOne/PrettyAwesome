@@ -1062,6 +1062,24 @@ html, body {
     padding: 0.95rem 0.85rem;
     display: flex;
     align-items: center;
+    position: relative;
+}
+
+.stripe-card-frame[data-state]::before {
+    content: attr(data-state-text);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #4a4a4a;
+}
+
+.stripe-card-frame[data-state="error"] {
+    border-color: #7a1111;
+    background: #fff4f4;
+}
+
+.stripe-card-frame[data-state="error"]::before {
+    color: #7a1111;
 }
 
 .payment-helper-copy {
