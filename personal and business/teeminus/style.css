@@ -420,3 +420,8 @@ html, body {
   text-align: center;
   margin-bottom: 1rem;
 }
+
+.info-section h1 span,
+.info-section h2 span {
+  color: #b91010; /* Highlighted text color */
+}
