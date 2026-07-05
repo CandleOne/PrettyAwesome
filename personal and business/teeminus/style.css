@@ -769,6 +769,10 @@ html, body {
     color: #000000;
 }
 
+.success-link.alt:hover {
+    background: #f1f1f1;
+}
+
 .admin-page .registration-main {
     width: min(1280px, 96%);
 }
