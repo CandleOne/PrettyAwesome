@@ -875,6 +875,76 @@ html, body {
     max-width: 860px;
 }
 
+.account-alert {
+    border: 2px solid #000000;
+    padding: 0.8rem 1rem;
+    margin-top: 0.9rem;
+    margin-bottom: 0.9rem;
+    background: #f4f4f4;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.account-alert.success {
+    background: #e2f3ea;
+}
+
+.account-alert.error {
+    background: #fbe4e4;
+}
+
+.account-alert.info {
+    background: #ececec;
+}
+
+.account-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 0.9rem;
+}
+
+.account-links {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.account-section {
+    border: 2px solid #000000;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.account-section .account-subtitle {
+    margin-top: 0;
+    margin-bottom: 0.7rem;
+}
+
+.account-switch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.2rem;
+}
+
+.danger-zone {
+    border-color: #7a1111;
+    background: #fff5f5;
+}
+
+.danger-button {
+    background: #7a1111;
+}
+
+.danger-button:hover {
+    background: #5f0d0d;
+}
+
 .account-subtitle {
     font-family: 'Courier New', Courier, monospace;
     font-size: 1.25rem;
@@ -921,5 +991,15 @@ html, body {
 
     .admin-controls {
         grid-template-columns: 1fr;
+    }
+
+    .account-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .account-switch-row,
+    .admin-header-row {
+        align-items: stretch;
+        flex-direction: column;
     }
 }

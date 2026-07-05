@@ -22,15 +22,130 @@
     <section class="registration-card account-card">
       <div class="admin-header-row">
         <h1>Your Account</h1>
-        <button type="button" class="btn-prev" id="account-signout-btn">Sign Out</button>
+        <button type="button" class="btn-prev" id="account-signout-btn" hidden>Sign Out</button>
       </div>
-      <p>View your registration details and account status.</p>
+      <p>Manage your profile, security settings, and role-specific account details.</p>
 
-      <div class="registration-summary" id="account-summary"></div>
+      <div id="account-alert" class="account-alert" hidden></div>
 
-      <div id="print-shop-summary" class="registration-summary" hidden></div>
+      <div id="account-empty-state" class="registration-summary">
+        <p>No active account is loaded.</p>
+        <p>Use the form below to sign in to your account.</p>
+      </div>
 
-      <h2 class="account-subtitle">Sign In or Switch Account</h2>
+      <div id="account-authenticated" hidden>
+        <div class="account-grid">
+          <div class="registration-summary" id="account-summary"></div>
+          <div class="registration-summary" id="role-summary"></div>
+        </div>
+
+        <div class="account-links">
+          <a href="teeminus-order-form.html" class="success-link" id="account-primary-link">Start a Quote</a>
+          <a href="registration.html" class="success-link alt">Create Another Account</a>
+        </div>
+
+        <section class="account-section">
+          <h2 class="account-subtitle">Profile Details</h2>
+          <form class="registration-form" id="account-profile-form">
+            <label for="account-name-field">Name</label>
+            <input type="text" id="account-name-field" required>
+
+            <label for="account-email-field">Email</label>
+            <input type="email" id="account-email-field" required>
+
+            <label for="account-handle-field" id="account-handle-label">Username</label>
+            <input type="text" id="account-handle-field" required>
+
+            <div class="registration-actions">
+              <button type="submit">Save Profile</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="account-section" id="account-print-shop-section" hidden>
+          <h2 class="account-subtitle">Print Shop Details</h2>
+          <form class="registration-form" id="account-print-shop-form">
+            <label for="account-shop-location">Location</label>
+            <div class="location-picker">
+              <input type="text" id="account-shop-location" placeholder="Start typing a city..." autocomplete="off">
+              <div id="account-location-results" class="location-results" hidden role="listbox" aria-label="Location suggestions"></div>
+            </div>
+            <p class="field-note" id="account-location-note">Type to narrow U.S. towns and cities.</p>
+
+            <label for="account-min-order-qty">Minimum Order Quantity</label>
+            <input type="number" id="account-min-order-qty" min="1" step="1">
+
+            <label class="checkbox-label" for="account-same-day-samples">
+              <input type="checkbox" id="account-same-day-samples" value="yes">
+              Same day samples available
+            </label>
+
+            <label class="checkbox-label" for="account-same-day-fulfillment">
+              <input type="checkbox" id="account-same-day-fulfillment" value="yes">
+              Same day fulfillment available up to quantity
+            </label>
+
+            <label for="account-same-day-max-qty">Same day fulfillment max quantity</label>
+            <input type="number" id="account-same-day-max-qty" min="1" step="1">
+
+            <fieldset class="checkbox-group">
+              <legend>Accepted Fulfillment Methods</legend>
+              <label class="checkbox-label" for="account-method-pickup">
+                <input type="checkbox" id="account-method-pickup" name="account-fulfillment-methods[]" value="pickup">
+                Pick up
+              </label>
+              <label class="checkbox-label" for="account-method-local-delivery">
+                <input type="checkbox" id="account-method-local-delivery" name="account-fulfillment-methods[]" value="local-delivery">
+                Local Delivery
+              </label>
+              <label class="checkbox-label" for="account-method-ship">
+                <input type="checkbox" id="account-method-ship" name="account-fulfillment-methods[]" value="ship-it-to-me">
+                Ship it to me
+              </label>
+            </fieldset>
+
+            <div class="registration-actions">
+              <button type="submit">Save Print Shop Details</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="account-section">
+          <h2 class="account-subtitle">Security</h2>
+          <form class="registration-form" id="account-password-form">
+            <label for="account-current-password">Current Password</label>
+            <input type="password" id="account-current-password" minlength="8" required>
+
+            <label for="account-new-password">New Password</label>
+            <input type="password" id="account-new-password" minlength="8" required>
+
+            <label for="account-confirm-password">Confirm New Password</label>
+            <input type="password" id="account-confirm-password" minlength="8" required>
+
+            <div class="registration-actions">
+              <button type="submit">Update Password</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="account-section danger-zone">
+          <h2 class="account-subtitle">Delete Account</h2>
+          <p class="field-note">Confirm with your password. This permanently removes the account from this browser.</p>
+          <form class="registration-form" id="account-delete-form">
+            <label for="account-delete-password">Password</label>
+            <input type="password" id="account-delete-password" minlength="8" required>
+
+            <div class="registration-actions">
+              <button type="submit" class="danger-button">Delete Account</button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <div class="account-switch-row">
+        <h2 class="account-subtitle" id="account-switch-title">Sign In</h2>
+        <button type="button" class="btn-prev" id="account-switch-btn" hidden>Switch Account</button>
+      </div>
       <form class="registration-form" id="account-lookup-form">
         <label for="lookup-email">Email</label>
         <input type="email" id="lookup-email" required>
@@ -72,17 +187,71 @@
   <script src="auth.js"></script>
   <script>
     const summaryEl = document.getElementById('account-summary');
-    const printShopSummaryEl = document.getElementById('print-shop-summary');
+    const roleSummaryEl = document.getElementById('role-summary');
     const lookupForm = document.getElementById('account-lookup-form');
     const signoutBtn = document.getElementById('account-signout-btn');
+    const accountAlert = document.getElementById('account-alert');
+    const accountEmptyState = document.getElementById('account-empty-state');
+    const accountAuthed = document.getElementById('account-authenticated');
+    const accountSwitchTitle = document.getElementById('account-switch-title');
+    const accountSwitchBtn = document.getElementById('account-switch-btn');
+    const primaryLink = document.getElementById('account-primary-link');
+
+    const profileForm = document.getElementById('account-profile-form');
+    const profileNameInput = document.getElementById('account-name-field');
+    const profileEmailInput = document.getElementById('account-email-field');
+    const profileHandleLabel = document.getElementById('account-handle-label');
+    const profileHandleInput = document.getElementById('account-handle-field');
+
+    const printShopSection = document.getElementById('account-print-shop-section');
+    const printShopForm = document.getElementById('account-print-shop-form');
+    const shopLocationInput = document.getElementById('account-shop-location');
+    const locationResults = document.getElementById('account-location-results');
+    const locationNote = document.getElementById('account-location-note');
+    const minOrderQtyInput = document.getElementById('account-min-order-qty');
+    const sameDaySamplesInput = document.getElementById('account-same-day-samples');
+    const sameDayFulfillmentInput = document.getElementById('account-same-day-fulfillment');
+    const sameDayMaxQtyInput = document.getElementById('account-same-day-max-qty');
+    const fulfillmentMethodCheckboxes = Array.from(document.querySelectorAll('input[name="account-fulfillment-methods[]"]'));
+
+    const passwordForm = document.getElementById('account-password-form');
+    const currentPasswordInput = document.getElementById('account-current-password');
+    const newPasswordInput = document.getElementById('account-new-password');
+    const confirmPasswordInput = document.getElementById('account-confirm-password');
+
+    const deleteForm = document.getElementById('account-delete-form');
+    const deletePasswordInput = document.getElementById('account-delete-password');
+
+    let switchFormExpanded = false;
+    let usCityLibraryLoaded = false;
+    let usCityLibraryLoading = false;
+    let usCities = [];
+
+    function formatDateTime(iso) {
+      if (!iso) return '-';
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return '-';
+      return date.toLocaleString();
+    }
+
+    function showAlert(message, tone) {
+      accountAlert.textContent = message;
+      accountAlert.className = `account-alert ${tone || 'info'}`;
+      accountAlert.hidden = false;
+    }
+
+    function clearAlert() {
+      accountAlert.hidden = true;
+      accountAlert.textContent = '';
+      accountAlert.className = 'account-alert';
+    }
 
     function renderNoAccount() {
-      summaryEl.innerHTML = [
-        '<p>No active account is loaded.</p>',
-        '<p>Use the form below to sign in to your account.</p>',
-      ].join('');
-      printShopSummaryEl.hidden = true;
-      printShopSummaryEl.innerHTML = '';
+      accountEmptyState.hidden = false;
+      accountAuthed.hidden = true;
+      summaryEl.innerHTML = '';
+      roleSummaryEl.innerHTML = '';
+      printShopSection.hidden = true;
     }
 
     function renderAccount(account) {
@@ -92,39 +261,238 @@
       }
 
       const status = account.status || 'active';
+      const isPrintShop = account.role === 'print-shop';
+      const printShopDetails = account.printShop || {};
+      const location = printShopDetails.location || 'Not provided';
+
+      accountEmptyState.hidden = true;
+      accountAuthed.hidden = false;
       summaryEl.innerHTML = [
         `<p>Name: ${account.name || '-'}</p>`,
         `<p>Email: ${account.email || '-'}</p>`,
         `<p>Role: ${window.TMAuth.roleLabel(account.role)}</p>`,
         `<p>Account: ${account.accountName || '-'}</p>`,
         `<p>Status: ${status}</p>`,
+        `<p>Member Since: ${formatDateTime(account.createdAt)}</p>`,
       ].join('');
 
-      if (account.printShop) {
-        const methods = (account.printShop.fulfillmentMethods || []).join(', ') || 'Not provided';
-        printShopSummaryEl.innerHTML = [
-          '<p><strong>Print Shop Details</strong></p>',
-          `<p>Location: ${account.printShop.location || '-'}</p>`,
-          `<p>Minimum Order Quantity: ${account.printShop.minimumOrderQuantity || 0}</p>`,
-          `<p>Same Day Samples: ${account.printShop.sameDaySamplesAvailable ? 'Yes' : 'No'}</p>`,
-          `<p>Same Day Fulfillment: ${account.printShop.sameDayFulfillmentAvailable ? 'Yes' : 'No'}</p>`,
-          `<p>Same Day Max Quantity: ${account.printShop.sameDayFulfillmentMaxQuantity || 0}</p>`,
+      if (isPrintShop) {
+        const methods = (printShopDetails.fulfillmentMethods || []).join(', ') || 'Not provided';
+        roleSummaryEl.innerHTML = [
+          '<p><strong>Partner Snapshot</strong></p>',
+          `<p>Location: ${location}</p>`,
+          `<p>Minimum Order Quantity: ${printShopDetails.minimumOrderQuantity || 0}</p>`,
+          `<p>Same Day Samples: ${printShopDetails.sameDaySamplesAvailable ? 'Yes' : 'No'}</p>`,
+          `<p>Same Day Fulfillment: ${printShopDetails.sameDayFulfillmentAvailable ? 'Yes' : 'No'}</p>`,
+          `<p>Same Day Max Quantity: ${printShopDetails.sameDayFulfillmentMaxQuantity || 0}</p>`,
           `<p>Fulfillment Methods: ${methods}</p>`,
         ].join('');
-        printShopSummaryEl.hidden = false;
+        primaryLink.textContent = 'View Quote Intake';
       } else {
-        printShopSummaryEl.hidden = true;
-        printShopSummaryEl.innerHTML = '';
+        roleSummaryEl.innerHTML = [
+          '<p><strong>Customer Snapshot</strong></p>',
+          '<p>Ready to request new custom orders and update your account details.</p>',
+          `<p>Current session: ${status === 'suspended' ? 'Unavailable' : 'Active'}</p>`,
+          '<p>Use the quote form any time to start a new project.</p>',
+        ].join('');
+        primaryLink.textContent = 'Start a Quote';
       }
+
+      populateForms(account);
+      updatePrintShopFormState(account);
     }
 
     function updateSignedInUI(account) {
-      lookupForm.hidden = false;
+      if (!account) {
+        switchFormExpanded = false;
+        accountSwitchTitle.textContent = 'Sign In';
+        accountSwitchBtn.hidden = true;
+        lookupForm.hidden = false;
+        signoutBtn.hidden = true;
+        return;
+      }
+
+      accountSwitchTitle.textContent = switchFormExpanded ? 'Switch Account' : 'Need another sign-in?';
+      accountSwitchBtn.hidden = false;
+      accountSwitchBtn.textContent = switchFormExpanded ? 'Hide Form' : 'Switch Account';
+      lookupForm.hidden = !switchFormExpanded;
       signoutBtn.hidden = !account;
+    }
+
+    function populateForms(account) {
+      profileNameInput.value = account.name || '';
+      profileEmailInput.value = account.email || '';
+      profileHandleInput.value = account.accountName || '';
+
+      if (account.role === 'print-shop') {
+        profileHandleLabel.textContent = 'Organization Name';
+        profileHandleInput.placeholder = 'e.g. Northside Prints';
+        const details = account.printShop || {};
+        shopLocationInput.value = details.location || '';
+        minOrderQtyInput.value = details.minimumOrderQuantity || '';
+        sameDaySamplesInput.checked = Boolean(details.sameDaySamplesAvailable);
+        sameDayFulfillmentInput.checked = Boolean(details.sameDayFulfillmentAvailable);
+        sameDayMaxQtyInput.value = details.sameDayFulfillmentMaxQuantity || '';
+        fulfillmentMethodCheckboxes.forEach((box) => {
+          box.checked = Array.isArray(details.fulfillmentMethods) && details.fulfillmentMethods.includes(box.value);
+          box.setCustomValidity('');
+        });
+      } else {
+        profileHandleLabel.textContent = 'Username';
+        profileHandleInput.placeholder = 'e.g. tee_fan_24';
+        shopLocationInput.value = '';
+        minOrderQtyInput.value = '';
+        sameDaySamplesInput.checked = false;
+        sameDayFulfillmentInput.checked = false;
+        sameDayMaxQtyInput.value = '';
+        fulfillmentMethodCheckboxes.forEach((box) => {
+          box.checked = false;
+          box.setCustomValidity('');
+        });
+      }
+    }
+
+    function buildPrintShopPayload() {
+      return {
+        location: shopLocationInput.value,
+        minimumOrderQuantity: Number(minOrderQtyInput.value || 0),
+        sameDaySamplesAvailable: sameDaySamplesInput.checked,
+        sameDayFulfillmentAvailable: sameDayFulfillmentInput.checked,
+        sameDayFulfillmentMaxQuantity: Number(sameDayMaxQtyInput.value || 0),
+        fulfillmentMethods: fulfillmentMethodCheckboxes
+          .filter((box) => box.checked)
+          .map((box) => box.value),
+      };
+    }
+
+    function hideLocationResults() {
+      locationResults.hidden = true;
+      locationResults.innerHTML = '';
+    }
+
+    function renderLocationResults(queryText) {
+      if (!usCityLibraryLoaded) return;
+
+      const query = queryText.trim().toLowerCase();
+      if (!query) {
+        hideLocationResults();
+        return;
+      }
+
+      const matches = [];
+      for (let i = 0; i < usCities.length; i++) {
+        const city = usCities[i];
+        if (city.toLowerCase().includes(query)) {
+          matches.push(city);
+        }
+        if (matches.length >= 50) break;
+      }
+
+      if (!matches.length) {
+        hideLocationResults();
+        return;
+      }
+
+      locationResults.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      matches.forEach((city) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'location-option';
+        item.textContent = city;
+        item.setAttribute('role', 'option');
+        item.addEventListener('click', () => {
+          shopLocationInput.value = city;
+          hideLocationResults();
+          shopLocationInput.focus();
+        });
+        fragment.appendChild(item);
+      });
+
+      locationResults.appendChild(fragment);
+      locationResults.hidden = false;
+    }
+
+    function parseCsvRow(row) {
+      const out = [];
+      let cur = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') {
+          if (inQuotes && row[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          out.push(cur);
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+
+      out.push(cur);
+      return out;
+    }
+
+    async function ensureUsCityLibrary() {
+      if (usCityLibraryLoaded || usCityLibraryLoading) return;
+      usCityLibraryLoading = true;
+      locationNote.textContent = 'Loading U.S. towns and cities...';
+
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/kelvins/US-Cities-Database/main/csv/us_cities.csv');
+        if (!response.ok) throw new Error('City dataset request failed');
+
+        const csv = await response.text();
+        const lines = csv.split(/\r?\n/).filter(Boolean);
+        const seen = new Set();
+        const cityValues = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCsvRow(lines[i]);
+          if (cols.length < 4) continue;
+          const stateCode = cols[1];
+          const city = cols[3];
+          if (!city || !stateCode) continue;
+          const value = `${city}, ${stateCode}`;
+          if (seen.has(value)) continue;
+          seen.add(value);
+          cityValues.push(value);
+        }
+
+        usCities = cityValues;
+        usCityLibraryLoaded = true;
+        locationNote.textContent = 'Type to narrow U.S. towns and cities.';
+      } catch (error) {
+        locationNote.textContent = 'City list could not be loaded. You can still type your location manually.';
+      } finally {
+        usCityLibraryLoading = false;
+      }
+    }
+
+    function updatePrintShopFormState(account) {
+      const isPrintShop = Boolean(account && account.role === 'print-shop');
+      printShopSection.hidden = !isPrintShop;
+      shopLocationInput.required = isPrintShop;
+      minOrderQtyInput.required = isPrintShop;
+      sameDayMaxQtyInput.required = isPrintShop && sameDayFulfillmentInput.checked;
+      sameDayMaxQtyInput.disabled = !isPrintShop || !sameDayFulfillmentInput.checked;
+
+      if (isPrintShop) {
+        ensureUsCityLibrary();
+      } else {
+        hideLocationResults();
+      }
     }
 
     lookupForm.addEventListener('submit', async (event) => {
       event.preventDefault();
+      clearAlert();
 
       const emailEl = document.getElementById('lookup-email');
       const passwordEl = document.getElementById('lookup-password');
@@ -147,27 +515,223 @@
       }
 
       lookupForm.reset();
+      switchFormExpanded = false;
       if (window.refreshAccountNavVisibility) {
         window.refreshAccountNavVisibility();
       }
       renderAccount(result.account);
       updateSignedInUI(result.account);
+      showAlert('Signed in successfully.', 'success');
     });
 
     signoutBtn.addEventListener('click', () => {
+      clearAlert();
       window.TMAuth.signOutCurrentUser();
       if (window.refreshAccountNavVisibility) {
         window.refreshAccountNavVisibility();
       }
       lookupForm.reset();
+      passwordForm.reset();
+      deleteForm.reset();
       renderNoAccount();
       updateSignedInUI(null);
+      showAlert('You have been signed out.', 'info');
       document.getElementById('lookup-email').focus();
+    });
+
+    accountSwitchBtn.addEventListener('click', () => {
+      switchFormExpanded = !switchFormExpanded;
+      updateSignedInUI(window.TMAuth.getCurrentAccount());
+      if (!lookupForm.hidden) {
+        document.getElementById('lookup-email').focus();
+      }
+    });
+
+    profileForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearAlert();
+
+      const account = window.TMAuth.getCurrentAccount();
+      if (!account) {
+        renderNoAccount();
+        updateSignedInUI(null);
+        return;
+      }
+
+      profileEmailInput.setCustomValidity('');
+      profileHandleInput.setCustomValidity('');
+
+      const result = await window.TMAuth.updateAccount(account.id, {
+        name: profileNameInput.value,
+        email: profileEmailInput.value,
+        accountName: profileHandleInput.value,
+      });
+
+      if (!result.ok) {
+        if (result.error === 'email-exists') {
+          profileEmailInput.setCustomValidity('An account with this email already exists.');
+          profileEmailInput.reportValidity();
+          return;
+        }
+
+        if (result.error === 'account-name-exists') {
+          profileHandleInput.setCustomValidity('That username or organization name is already taken.');
+          profileHandleInput.reportValidity();
+          return;
+        }
+
+        showAlert('Profile details could not be saved.', 'error');
+        return;
+      }
+
+      renderAccount(result.account);
+      updateSignedInUI(result.account);
+      showAlert('Profile details saved.', 'success');
+    });
+
+    printShopForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearAlert();
+
+      const account = window.TMAuth.getCurrentAccount();
+      if (!account || account.role !== 'print-shop') {
+        return;
+      }
+
+      const hasFulfillmentMethod = fulfillmentMethodCheckboxes.some((box) => box.checked);
+      if (!hasFulfillmentMethod) {
+        fulfillmentMethodCheckboxes[0].setCustomValidity('Select at least one fulfillment method.');
+        fulfillmentMethodCheckboxes[0].reportValidity();
+        return;
+      }
+      fulfillmentMethodCheckboxes[0].setCustomValidity('');
+
+      const result = await window.TMAuth.updateAccount(account.id, {
+        printShop: buildPrintShopPayload(),
+      });
+
+      if (!result.ok) {
+        showAlert('Print shop details could not be saved.', 'error');
+        return;
+      }
+
+      renderAccount(result.account);
+      updateSignedInUI(result.account);
+      showAlert('Print shop details saved.', 'success');
+    });
+
+    passwordForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearAlert();
+
+      const account = window.TMAuth.getCurrentAccount();
+      if (!account) {
+        renderNoAccount();
+        updateSignedInUI(null);
+        return;
+      }
+
+      currentPasswordInput.setCustomValidity('');
+      newPasswordInput.setCustomValidity('');
+      confirmPasswordInput.setCustomValidity('');
+
+      if (newPasswordInput.value !== confirmPasswordInput.value) {
+        confirmPasswordInput.setCustomValidity('The new passwords do not match.');
+        confirmPasswordInput.reportValidity();
+        return;
+      }
+
+      const result = await window.TMAuth.changePassword(
+        account.id,
+        currentPasswordInput.value,
+        newPasswordInput.value,
+      );
+
+      if (!result.ok) {
+        if (result.error === 'invalid-password') {
+          currentPasswordInput.setCustomValidity('Your current password is incorrect.');
+          currentPasswordInput.reportValidity();
+          return;
+        }
+
+        if (result.error === 'password-too-short') {
+          newPasswordInput.setCustomValidity('Your new password must be at least 8 characters long.');
+          newPasswordInput.reportValidity();
+          return;
+        }
+
+        showAlert('Password update failed.', 'error');
+        return;
+      }
+
+      passwordForm.reset();
+      showAlert('Password updated.', 'success');
+    });
+
+    deleteForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearAlert();
+
+      const account = window.TMAuth.getCurrentAccount();
+      if (!account) {
+        renderNoAccount();
+        updateSignedInUI(null);
+        return;
+      }
+
+      deletePasswordInput.setCustomValidity('');
+
+      const confirmed = window.confirm('Delete this account from this browser? This cannot be undone.');
+      if (!confirmed) {
+        return;
+      }
+
+      const result = await window.TMAuth.deleteAccount(account.id, deletePasswordInput.value);
+      if (!result.ok) {
+        if (result.error === 'invalid-password') {
+          deletePasswordInput.setCustomValidity('Your password is incorrect.');
+          deletePasswordInput.reportValidity();
+          return;
+        }
+
+        showAlert('Account deletion failed.', 'error');
+        return;
+      }
+
+      if (window.refreshAccountNavVisibility) {
+        window.refreshAccountNavVisibility();
+      }
+      lookupForm.reset();
+      passwordForm.reset();
+      deleteForm.reset();
+      renderNoAccount();
+      updateSignedInUI(null);
+      showAlert('Account deleted.', 'success');
+      document.getElementById('lookup-email').focus();
+    });
+
+    sameDayFulfillmentInput.addEventListener('change', () => {
+      updatePrintShopFormState(window.TMAuth.getCurrentAccount());
+    });
+    shopLocationInput.addEventListener('input', () => {
+      renderLocationResults(shopLocationInput.value);
+    });
+    shopLocationInput.addEventListener('focus', () => {
+      renderLocationResults(shopLocationInput.value);
+    });
+    document.addEventListener('click', (event) => {
+      const clickedInsidePicker = event.target.closest('.location-picker');
+      if (!clickedInsidePicker) {
+        hideLocationResults();
+      }
     });
 
     const current = window.TMAuth.getCurrentAccount();
     renderAccount(current);
     updateSignedInUI(current);
+    if (!current) {
+      document.getElementById('lookup-email').focus();
+    }
   </script>
   <script src="nav-auth.js"></script>
 </body>

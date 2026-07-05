@@ -105,6 +105,149 @@
     return readAccounts().find((a) => a.id === id) || null;
   }
 
+  function getAccountById(id) {
+    if (!id) return null;
+    return readAccounts().find((a) => a.id === id) || null;
+  }
+
+  function buildPrintShopDetails(input) {
+    if (!input) return null;
+
+    return {
+      location: normalize(input.location),
+      minimumOrderQuantity: Number(input.minimumOrderQuantity || 0),
+      sameDaySamplesAvailable: Boolean(input.sameDaySamplesAvailable),
+      sameDayFulfillmentAvailable: Boolean(input.sameDayFulfillmentAvailable),
+      sameDayFulfillmentMaxQuantity: Number(input.sameDayFulfillmentMaxQuantity || 0),
+      fulfillmentMethods: Array.isArray(input.fulfillmentMethods)
+        ? input.fulfillmentMethods.map((value) => normalize(value)).filter(Boolean)
+        : [],
+    };
+  }
+
+  function validateAccountRole(role) {
+    return role === 'customer' || role === 'print-shop';
+  }
+
+  async function updateAccount(accountId, updates) {
+    const accounts = readAccounts();
+    const index = accounts.findIndex((account) => account.id === accountId);
+    if (index === -1) {
+      return { ok: false, error: 'not-found' };
+    }
+
+    const existing = accounts[index];
+    const nextRole = updates.role || existing.role;
+    if (!validateAccountRole(nextRole)) {
+      return { ok: false, error: 'invalid-role' };
+    }
+
+    const nextEmail = normalizeEmail(updates.email != null ? updates.email : existing.email);
+    const nextAccountName = normalize(updates.accountName != null ? updates.accountName : existing.accountName);
+
+    if (!nextEmail) {
+      return { ok: false, error: 'missing-email' };
+    }
+
+    if (!nextAccountName) {
+      return { ok: false, error: 'missing-account-name' };
+    }
+
+    const duplicateEmail = accounts.some((account, idx) => idx !== index && normalizeEmail(account.email) === nextEmail);
+    if (duplicateEmail) {
+      return { ok: false, error: 'email-exists' };
+    }
+
+    const duplicateAccountName = accounts.some((account, idx) => {
+      return idx !== index && normalize(account.accountName).toLowerCase() === nextAccountName.toLowerCase();
+    });
+    if (duplicateAccountName) {
+      return { ok: false, error: 'account-name-exists' };
+    }
+
+    const nextPrintShop = nextRole === 'print-shop'
+      ? buildPrintShopDetails(updates.printShop != null ? updates.printShop : existing.printShop)
+      : null;
+
+    accounts[index] = {
+      ...existing,
+      name: normalize(updates.name != null ? updates.name : existing.name),
+      email: nextEmail,
+      role: nextRole,
+      accountName: nextAccountName,
+      printShop: nextPrintShop,
+    };
+
+    writeAccounts(accounts);
+    return { ok: true, account: accounts[index] };
+  }
+
+  async function changePassword(accountId, currentPassword, nextPassword) {
+    const accounts = readAccounts();
+    const index = accounts.findIndex((account) => account.id === accountId);
+    if (index === -1) {
+      return { ok: false, error: 'not-found' };
+    }
+
+    const account = accounts[index];
+    const currentHash = await hashPassword(String(currentPassword || ''));
+    if (account.passwordHash) {
+      if (account.passwordHash !== currentHash) {
+        return { ok: false, error: 'invalid-password' };
+      }
+    } else {
+      const expectedLength = Number(account.passwordLength || 0);
+      if (!expectedLength || String(currentPassword || '').length !== expectedLength) {
+        return { ok: false, error: 'invalid-password' };
+      }
+    }
+
+    if (String(nextPassword || '').length < 8) {
+      return { ok: false, error: 'password-too-short' };
+    }
+
+    accounts[index] = {
+      ...account,
+      passwordHash: await hashPassword(String(nextPassword || '')),
+      passwordLength: undefined,
+    };
+
+    writeAccounts(accounts);
+    return { ok: true, account: accounts[index] };
+  }
+
+  async function deleteAccount(accountId, password) {
+    const accounts = readAccounts();
+    const index = accounts.findIndex((account) => account.id === accountId);
+    if (index === -1) {
+      return { ok: false, error: 'not-found' };
+    }
+
+    const account = accounts[index];
+    const providedPassword = String(password || '');
+    const providedHash = await hashPassword(providedPassword);
+
+    if (account.passwordHash) {
+      if (account.passwordHash !== providedHash) {
+        return { ok: false, error: 'invalid-password' };
+      }
+    } else {
+      const expectedLength = Number(account.passwordLength || 0);
+      if (!expectedLength || providedPassword.length !== expectedLength) {
+        return { ok: false, error: 'invalid-password' };
+      }
+    }
+
+    const [removed] = accounts.splice(index, 1);
+    writeAccounts(accounts);
+
+    if (getCurrentUserId() === accountId) {
+      signOutCurrentUser();
+    }
+
+    return { ok: true, account: removed };
+  }
+
   function signOutCurrentUser() {
     setCurrentUserId('');
   }
@@ -178,9 +321,13 @@
     writeAccounts,
     roleLabel,
     createAccount,
+    updateAccount,
+    changePassword,
+    deleteAccount,
     signInUser,
     setCurrentUserId,
     getCurrentUserId,
+    getAccountById,
     getCurrentAccount,
     signOutCurrentUser,
     isAdminAuthed,
