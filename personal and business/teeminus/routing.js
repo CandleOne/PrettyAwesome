@@ -25,6 +25,21 @@
     return String(value || '').trim().toLowerCase();
   }
 
+  // Optional offline lookup of 'city, st' -> { lat, lng, formatted }, injected
+  // by pages that already load a US-cities dataset (see shop.html). Checked
+  // before any network geocoding, so it is instant and rate-limit-free.
+  let cityCoordIndex = null;
+  function setCityCoordIndex(index) {
+    cityCoordIndex = index && typeof index === 'object' ? index : null;
+  }
+  function lookupCityCoords(location) {
+    if (!cityCoordIndex) return null;
+    const key = normalizeKey(location);
+    if (cityCoordIndex[key]) return cityCoordIndex[key];
+    const canonical = key.replace(/\s*,\s*/g, ', ');
+    return cityCoordIndex[canonical] || null;
+  }
+
   function readCache() {
     try {
       return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)) || {};
@@ -52,9 +67,15 @@
     const cache = readCache();
     if (cache[key]) return cache[key];
 
-    // Prefer the backend (supports keyed providers); fall back to a direct
-    // browser call to Photon (OpenStreetMap) so this works on static hosting
-    // with no local server running.
+    // 1) Offline city index (instant, no network).
+    const localHit = lookupCityCoords(location);
+    if (localHit) {
+      cache[key] = localHit;
+      writeCache(cache);
+      return localHit;
+    }
+
+    // 2) Backend geocoder (supports keyed providers); 3) direct Photon (OSM).
     let coords = await geocodeViaBackend(location);
     if (!coords) coords = await geocodeViaPhoton(location);
 
@@ -254,6 +275,7 @@
   window.TMRouting = {
     PRICING,
     geocode,
+    setCityCoordIndex,
     haversineMiles,
     getActivePrintShops,
     estimatePricing,

@@ -189,6 +189,12 @@
             Need it same day
           </label>
         </div>
+        <div style="display:flex; align-items:center; padding-bottom:8px;">
+          <label class="shop-checkbox" for="matching-only-toggle" style="margin-bottom:0; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="matching-only-toggle" checked style="width:auto;">
+            Only matching shops
+          </label>
+        </div>
         <div>
           <label>&nbsp;</label>
           <button type="button" id="find-shops-btn">Find shops</button>
@@ -232,6 +238,7 @@
     const qtyInput = document.getElementById('order-qty');
     const methodSelect = document.getElementById('fulfillment-method');
     const sameDayToggle = document.getElementById('same-day-toggle');
+    const matchingOnlyToggle = document.getElementById('matching-only-toggle');
     const findBtn = document.getElementById('find-shops-btn');
     const statusEl = document.getElementById('shop-status');
     const listEl = document.getElementById('shop-list');
@@ -241,7 +248,7 @@
 
     let usCities = [];
     let usCityLibraryLoaded = false;
-    let usCityLibraryLoading = false;
+    let usCityLibraryPromise = null;
 
     function escapeHtml(value) {
       return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
@@ -302,37 +309,47 @@
       return out;
     }
 
-    async function ensureUsCityLibrary() {
-      if (usCityLibraryLoaded || usCityLibraryLoading) return;
-      usCityLibraryLoading = true;
+    function ensureUsCityLibrary() {
+      if (usCityLibraryPromise) return usCityLibraryPromise;
       if (locationNote) locationNote.textContent = 'Loading U.S. towns and cities…';
-      try {
-        const response = await fetch('https://raw.githubusercontent.com/kelvins/US-Cities-Database/main/csv/us_cities.csv');
-        if (!response.ok) throw new Error('City dataset request failed');
-        const csv = await response.text();
-        const lines = csv.split(/\r?\n/).filter(Boolean);
-        const seen = new Set();
-        const cityValues = [];
-        for (let i = 1; i < lines.length; i++) {
-          const cols = parseCsvRow(lines[i]);
-          if (cols.length < 4) continue;
-          const stateCode = cols[1];
-          const city = cols[3];
-          if (!city || !stateCode) continue;
-          const value = `${city}, ${stateCode}`;
-          if (seen.has(value)) continue;
-          seen.add(value);
-          cityValues.push(value);
+      usCityLibraryPromise = (async () => {
+        try {
+          const response = await fetch('https://raw.githubusercontent.com/kelvins/US-Cities-Database/main/csv/us_cities.csv');
+          if (!response.ok) throw new Error('City dataset request failed');
+          const csv = await response.text();
+          const lines = csv.split(/\r?\n/).filter(Boolean);
+          const seen = new Set();
+          const cityValues = [];
+          const coordIndex = {};
+          for (let i = 1; i < lines.length; i++) {
+            const cols = parseCsvRow(lines[i]);
+            if (cols.length < 7) continue;
+            const stateCode = cols[1];
+            const city = cols[3];
+            const lat = Number(cols[5]);
+            const lng = Number(cols[6]);
+            if (!city || !stateCode) continue;
+            const value = `${city}, ${stateCode}`;
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+              coordIndex[value.toLowerCase()] = { lat, lng, formatted: value };
+            }
+            if (seen.has(value)) continue;
+            seen.add(value);
+            cityValues.push(value);
+          }
+          usCities = cityValues;
+          usCityLibraryLoaded = true;
+          if (window.TMRouting && window.TMRouting.setCityCoordIndex) {
+            window.TMRouting.setCityCoordIndex(coordIndex);
+          }
+          if (locationNote) locationNote.textContent = 'Pick your city from the list, or type a full street address.';
+          renderLocationResults(locationInput.value);
+        } catch (error) {
+          usCityLibraryPromise = null; // allow a later retry
+          if (locationNote) locationNote.textContent = 'City list could not be loaded. You can still type your location manually.';
         }
-        usCities = cityValues;
-        usCityLibraryLoaded = true;
-        if (locationNote) locationNote.textContent = 'Pick your city from the list, or type a full street address.';
-        renderLocationResults(locationInput.value);
-      } catch (error) {
-        if (locationNote) locationNote.textContent = 'City list could not be loaded. You can still type your location manually.';
-      } finally {
-        usCityLibraryLoading = false;
-      }
+      })();
+      return usCityLibraryPromise;
     }
 
     function shopName(account) {
@@ -376,21 +393,26 @@
       }).join('');
     }
 
-    function renderRankedResults(results, ctx) {
-      const eligibleCount = results.filter((r) => r.eligible).length;
-      resultsTitle.textContent = `Ranked for you — ${eligibleCount} of ${results.length} can take this order`;
+    function renderRankedResults(results, ctx, matchingOnly) {
+      const eligible = results.filter((r) => r.eligible);
+      const shown = matchingOnly ? eligible : results;
+      resultsTitle.textContent = `Ranked for you — ${eligible.length} of ${results.length} can take this order`;
 
       if (!results.length) {
         listEl.innerHTML = '<p class="field-note">No print shops are live yet in the network.</p>';
         return;
       }
+      if (matchingOnly && !eligible.length) {
+        listEl.innerHTML = '<p class="field-note">No shops can fulfill this order at your location. Widen the area, change fulfillment, or uncheck “Only matching shops”.</p>';
+        return;
+      }
 
-      listEl.innerHTML = results.map((r, index) => {
+      listEl.innerHTML = shown.map((r, index) => {
         const account = r.shop;
         const d = account.printShop || {};
         const pricing = window.TMRouting.estimatePricing({ quantity: ctx.quantity, rush: false });
         const distanceLabel = window.TMRouting.formatMiles(r.distanceMiles);
-        const isClosestEligible = r.eligible && index === results.findIndex((x) => x.eligible);
+        const isClosestEligible = r.eligible && index === shown.findIndex((x) => x.eligible);
         return `
           <article class="shop-card ${r.eligible ? '' : 'ineligible'}">
             <div class="shop-card-head">
@@ -435,21 +457,25 @@
       statusEl.textContent = 'Locating you and ranking the network…';
 
       try {
+        await ensureUsCityLibrary();
         const ranked = await window.TMRouting.rankShops(ctx);
         if (!ranked.customerCoords) {
-          statusEl.textContent = 'We could not locate that address. Try "City, ST" or check the local server is running.';
+          statusEl.textContent = 'We could not locate that address. Try "City, ST" or a nearby larger city.';
           return;
         }
         statusEl.textContent = `Ranked from ${ranked.customerCoords.formatted}.`;
-        renderRankedResults(ranked.results, ctx);
+        renderRankedResults(ranked.results, ctx, matchingOnlyToggle.checked);
       } catch (error) {
-        statusEl.textContent = 'Something went wrong while ranking shops. Make sure the local server is running.';
+        statusEl.textContent = 'Something went wrong while ranking shops. Please try again.';
       } finally {
         findBtn.disabled = false;
       }
     }
 
     findBtn.addEventListener('click', findShops);
+    matchingOnlyToggle.addEventListener('change', () => {
+      if (locationInput.value.trim()) findShops();
+    });
     locationInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') { event.preventDefault(); hideLocationResults(); findShops(); }
     });
