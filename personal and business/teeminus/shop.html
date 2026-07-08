@@ -175,6 +175,16 @@
 
       <div class="shop-search-row">
         <div>
+          <label for="search-radius">Search radius</label>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="search-radius" min="0" step="1" value="50" style="flex:1; min-width:70px;">
+            <select id="radius-unit" style="width:auto;">
+              <option value="mi">mi</option>
+              <option value="km">km</option>
+            </select>
+          </div>
+        </div>
+        <div>
           <label for="fulfillment-method">Fulfillment</label>
           <select id="fulfillment-method">
             <option value="">Any method</option>
@@ -239,6 +249,8 @@
     const methodSelect = document.getElementById('fulfillment-method');
     const sameDayToggle = document.getElementById('same-day-toggle');
     const matchingOnlyToggle = document.getElementById('matching-only-toggle');
+    const searchRadiusInput = document.getElementById('search-radius');
+    const radiusUnitSelect = document.getElementById('radius-unit');
     const findBtn = document.getElementById('find-shops-btn');
     const statusEl = document.getElementById('shop-status');
     const listEl = document.getElementById('shop-list');
@@ -356,6 +368,13 @@
       return account.accountName || account.name || 'Print Shop';
     }
 
+    // Customer search radius in miles (haversine is miles); 0/empty = no limit.
+    function getSearchRadiusMiles() {
+      const value = Number(searchRadiusInput.value);
+      if (!Number.isFinite(value) || value <= 0) return Infinity;
+      return radiusUnitSelect.value === 'km' ? value * 0.621371 : value;
+    }
+
     function methodsLabel(details) {
       const map = { pickup: 'Pick up', 'local-delivery': 'Local delivery', 'ship-it-to-me': 'Ship it to me' };
       return (details.fulfillmentMethods || []).map((m) => map[m] || m).join(' · ') || 'Not listed';
@@ -394,16 +413,26 @@
     }
 
     function renderRankedResults(results, ctx, matchingOnly) {
-      const eligible = results.filter((r) => r.eligible);
-      const shown = matchingOnly ? eligible : results;
-      resultsTitle.textContent = `Ranked for you — ${eligible.length} of ${results.length} can take this order`;
+      const radiusMiles = Number.isFinite(ctx.searchRadiusMiles) ? ctx.searchRadiusMiles : Infinity;
+      const withinRadius = results.filter((r) => r.distanceMiles <= radiusMiles);
+      const eligible = withinRadius.filter((r) => r.eligible);
+      const shown = matchingOnly ? eligible : withinRadius;
+
+      const radiusLabel = Number.isFinite(radiusMiles)
+        ? ` within ${escapeHtml(searchRadiusInput.value)} ${escapeHtml(radiusUnitSelect.value)}`
+        : '';
+      resultsTitle.textContent = `Ranked for you — ${eligible.length} of ${withinRadius.length} shops${radiusLabel} can take this order`;
 
       if (!results.length) {
         listEl.innerHTML = '<p class="field-note">No print shops are live yet in the network.</p>';
         return;
       }
+      if (!withinRadius.length) {
+        listEl.innerHTML = `<p class="field-note">No shops within${radiusLabel || ' range'}. Increase your search radius or try a nearby larger city.</p>`;
+        return;
+      }
       if (matchingOnly && !eligible.length) {
-        listEl.innerHTML = '<p class="field-note">No shops can fulfill this order at your location. Widen the area, change fulfillment, or uncheck “Only matching shops”.</p>';
+        listEl.innerHTML = '<p class="field-note">Shops are nearby but none can fulfill this exact order. Widen the radius, change fulfillment, or uncheck “Only matching shops”.</p>';
         return;
       }
 
@@ -451,6 +480,7 @@
         quantity: Number(qtyInput.value || 0),
         sameDayRequested: sameDayToggle.checked,
         fulfillmentMethod: methodSelect.value || '',
+        searchRadiusMiles: getSearchRadiusMiles(),
       };
 
       findBtn.disabled = true;
@@ -475,6 +505,11 @@
     findBtn.addEventListener('click', findShops);
     matchingOnlyToggle.addEventListener('change', () => {
       if (locationInput.value.trim()) findShops();
+    });
+    [searchRadiusInput, radiusUnitSelect, methodSelect, sameDayToggle, qtyInput].forEach((el) => {
+      el.addEventListener('change', () => {
+        if (locationInput.value.trim()) findShops();
+      });
     });
     locationInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') { event.preventDefault(); hideLocationResults(); findShops(); }
