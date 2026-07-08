@@ -96,6 +96,23 @@
           <tbody id="admin-network-orders-body"></tbody>
         </table>
       </div>
+
+      <h2 class="account-subtitle" style="margin-top:1.5rem">Debug Tools</h2>
+      <p class="field-note">Generate sample print shops (varied names, locations, capabilities &amp; payout) to populate the network for testing. Generated shops are tagged and can be removed in one click.</p>
+      <div class="admin-controls">
+        <label for="debug-shop-count">Number of shops</label>
+        <input type="number" id="debug-shop-count" min="1" max="100" value="5">
+
+        <label class="checkbox-label" for="debug-activate" style="align-self:center">
+          <input type="checkbox" id="debug-activate" checked>
+          Activate immediately (live in marketplace)
+        </label>
+      </div>
+      <div class="admin-actions-inline" style="margin-top:0.8rem">
+        <button type="button" id="debug-generate-btn">Generate print shops</button>
+        <button type="button" id="debug-clear-btn">Remove debug shops</button>
+      </div>
+      <p class="field-note" id="debug-status" style="margin-top:0.6rem"></p>
     </section>
   </main>
 
@@ -295,6 +312,118 @@
         renderDashboard();
       }
     }
+
+    /* ── DEBUG: sample print-shop generator ─────────────────────────── */
+    const DEBUG_CITIES = [
+      'Austin, TX', 'Houston, TX', 'Dallas, TX', 'San Antonio, TX', 'Denver, CO',
+      'Portland, OR', 'Seattle, WA', 'Chicago, IL', 'Atlanta, GA', 'Miami, FL',
+      'Nashville, TN', 'Phoenix, AZ', 'Los Angeles, CA', 'San Diego, CA', 'Brooklyn, NY',
+      'Boston, MA', 'Minneapolis, MN', 'Kansas City, MO', 'Columbus, OH', 'Charlotte, NC',
+      'Philadelphia, PA', 'Pittsburgh, PA', 'Detroit, MI', 'Sacramento, CA', 'Salt Lake City, UT',
+      'Richmond, VA', 'Tampa, FL', 'Raleigh, NC', 'Louisville, KY', 'Milwaukee, WI',
+    ];
+    const DEBUG_PREFIX = [
+      'Northside', 'Riverside', 'Downtown', 'Union', 'Maple', 'Ironwood', 'Sunset', 'Harbor',
+      'Liberty', 'Cedar', 'Anchor', 'Crimson', 'Evergreen', 'Delta', 'Copper', 'Lone Star',
+      'Highland', 'Beacon', 'Foundry', 'Meridian',
+    ];
+    const DEBUG_SUFFIX = ['Prints', 'Press', 'Ink Co.', 'Threads', 'Screen Co.', 'Print Works', 'Apparel', 'Print Lab'];
+    const DEBUG_METHODS = ['pickup', 'local-delivery', 'ship-it-to-me'];
+
+    function debugRand(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function debugInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function debugMethods() {
+      const picked = DEBUG_METHODS.filter(() => Math.random() < 0.6);
+      return picked.length ? picked : ['pickup'];
+    }
+
+    function generateDebugShops(count, activate) {
+      const accounts = window.TMAuth.readAccounts();
+      const emails = new Set(accounts.map((a) => String(a.email || '').toLowerCase()));
+      const names = new Set(accounts.map((a) => String(a.accountName || '').toLowerCase()));
+      let made = 0;
+
+      for (let i = 0; i < count; i++) {
+        const now = new Date().toISOString();
+        let name = '';
+        let slug = '';
+        let email = '';
+        let guard = 0;
+        do {
+          const base = `${debugRand(DEBUG_PREFIX)} ${debugRand(DEBUG_SUFFIX)}`;
+          name = `${base} #${debugInt(1, 9999)}`;
+          slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          email = `${slug}@debug.teeminus.local`;
+          guard++;
+        } while ((names.has(name.toLowerCase()) || emails.has(email)) && guard < 60);
+        names.add(name.toLowerCase());
+        emails.add(email);
+
+        const sameDay = Math.random() < 0.55;
+        const shop = {
+          id: `acct_${Date.now()}_${i}_${Math.floor(Math.random() * 1000000)}`,
+          createdAt: now,
+          status: 'active',
+          debug: true,
+          name: `${name.replace(/ #\d+$/, '')} Owner`,
+          email,
+          role: 'print-shop',
+          accountName: name,
+          passwordHash: 'debug',
+          passwordLength: undefined,
+          printShop: {
+            location: debugRand(DEBUG_CITIES),
+            serviceRadiusMiles: debugInt(10, 60),
+            minimumOrderQuantity: debugRand([1, 6, 10, 12, 24, 25, 50]),
+            sameDaySamplesAvailable: Math.random() < 0.5,
+            sameDayFulfillmentAvailable: sameDay,
+            sameDayFulfillmentMaxQuantity: sameDay ? debugRand([24, 36, 50, 72, 100]) : 0,
+            fulfillmentMethods: debugMethods(),
+            payout: {
+              method: debugRand(['bank', 'paypal', 'venmo']),
+              businessName: name,
+              payoutEmail: `pay-${slug}@debug.teeminus.local`,
+              reference: `****${debugInt(1000, 9999)}`,
+            },
+            verificationStatus: 'verified',
+            submittedForVerificationAt: now,
+            verifiedAt: now,
+            activatedAt: activate ? now : null,
+          },
+        };
+        accounts.push(shop);
+        made++;
+      }
+
+      window.TMAuth.writeAccounts(accounts);
+      return made;
+    }
+
+    function removeDebugShops() {
+      const accounts = window.TMAuth.readAccounts();
+      const kept = accounts.filter((a) => !a.debug);
+      const removed = accounts.length - kept.length;
+      window.TMAuth.writeAccounts(kept);
+      return removed;
+    }
+
+    const debugCountInput = document.getElementById('debug-shop-count');
+    const debugActivateInput = document.getElementById('debug-activate');
+    const debugStatus = document.getElementById('debug-status');
+
+    document.getElementById('debug-generate-btn').addEventListener('click', () => {
+      const count = Math.max(1, Math.min(100, parseInt(debugCountInput.value, 10) || 0));
+      const made = generateDebugShops(count, debugActivateInput.checked);
+      debugStatus.textContent = `Generated ${made} print shop${made === 1 ? '' : 's'}${debugActivateInput.checked ? ' (live in marketplace)' : ' (draft — not activated)'}.`;
+      renderDashboard();
+    });
+
+    document.getElementById('debug-clear-btn').addEventListener('click', () => {
+      if (!window.confirm('Remove all debug-generated print shops? Real accounts are kept.')) return;
+      const removed = removeDebugShops();
+      debugStatus.textContent = `Removed ${removed} debug shop${removed === 1 ? '' : 's'}.`;
+      renderDashboard();
+    });
 
     loginForm.addEventListener('submit', (event) => {
       event.preventDefault();
