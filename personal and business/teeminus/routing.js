@@ -52,25 +52,51 @@
     const cache = readCache();
     if (cache[key]) return cache[key];
 
+    // Prefer the backend (supports keyed providers); fall back to a direct
+    // browser call to Photon (OpenStreetMap) so this works on static hosting
+    // with no local server running.
+    let coords = await geocodeViaBackend(location);
+    if (!coords) coords = await geocodeViaPhoton(location);
+
+    if (coords) {
+      cache[key] = coords;
+      writeCache(cache);
+    }
+    return coords;
+  }
+
+  async function geocodeViaBackend(location) {
     try {
       const response = await fetch(`${API_BASE}/geocode`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: location }),
       });
+      if (!response.ok) return null;
       const data = await response.json();
-      if (!response.ok || !data.ok) return null;
+      if (!data.ok) return null;
+      const lat = Number(data.lat);
+      const lng = Number(data.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      return { lat, lng, formatted: data.formatted || location };
+    } catch (error) {
+      return null;
+    }
+  }
 
-      const coords = {
-        lat: Number(data.lat),
-        lng: Number(data.lng),
-        formatted: data.formatted || location,
-      };
-      if (!Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) return null;
-
-      cache[key] = coords;
-      writeCache(cache);
-      return coords;
+  async function geocodeViaPhoton(location) {
+    try {
+      const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(location)}&limit=1&lang=en`;
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const data = await response.json();
+      const feature = data && data.features && data.features[0];
+      if (!feature) return null;
+      const [lng, lat] = (feature.geometry && feature.geometry.coordinates) || [];
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      const p = feature.properties || {};
+      const formatted = [p.name, p.city, p.state, p.country].filter(Boolean).join(', ') || location;
+      return { lat, lng, formatted };
     } catch (error) {
       return null;
     }

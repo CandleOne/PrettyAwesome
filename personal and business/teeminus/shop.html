@@ -9,17 +9,24 @@
     .shop-page .shop-search-grid {
       display: grid;
       grid-template-columns: 2fr 1fr;
-      gap: 1rem;
-      align-items: end;
+      gap: 1rem 1.5rem;
+      align-items: start;
     }
     .shop-page .shop-search-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 1rem 1.5rem;
       align-items: end;
       margin-top: 1rem;
     }
     .shop-page .shop-search-row > div { flex: 1; min-width: 140px; }
+    .shop-page .shop-search label {
+      display: block;
+      margin-bottom: 6px;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
     .shop-page .shop-search input,
     .shop-page .shop-search select {
       width: 100%;
@@ -28,6 +35,13 @@
       background: #fffef8;
       font-family: 'Courier New', Courier, monospace;
       font-size: 1rem;
+    }
+    .shop-page #find-shops-btn {
+      width: 100%;
+      padding: 10px 12px;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      cursor: pointer;
     }
     .shop-page .shop-checkbox {
       display: flex;
@@ -169,14 +183,15 @@
             <option value="ship-it-to-me">Ship it to me</option>
           </select>
         </div>
-        <div style="display:flex; align-items:center;">
-          <label class="shop-checkbox" for="same-day-toggle">
-            <input type="checkbox" id="same-day-toggle">
+        <div style="display:flex; align-items:center; padding-bottom:8px;">
+          <label class="shop-checkbox" for="same-day-toggle" style="margin-bottom:0; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="same-day-toggle" style="width:auto;">
             Need it same day
           </label>
         </div>
         <div>
-          <button type="button" id="find-shops-btn" style="width:100%">Find shops</button>
+          <label>&nbsp;</label>
+          <button type="button" id="find-shops-btn">Find shops</button>
         </div>
       </div>
 
