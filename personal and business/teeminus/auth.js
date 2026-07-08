@@ -5,6 +5,7 @@
     LAST_REGISTRATION_ID: 'teeminus_last_registration_id',
     ADMIN_SESSION: 'teeminus_admin_session_v1',
     ACCOUNT_DATA_PREFIX: 'teeminus_account_data_v1_',
+    NETWORK_ORDERS: 'teeminus_network_orders_v1',
   };
 
   const ADMIN = {
@@ -75,7 +76,7 @@
       accountName: normalize(payload.accountName),
       passwordHash,
       passwordLength: undefined,
-      printShop: payload.printShop || null,
+      printShop: payload.role === 'print-shop' ? buildPrintShopDetails(payload.printShop || {}) : null,
     };
 
     accounts.push(account);
@@ -340,11 +341,25 @@
     return writeAccountData(accountId, { ...data, orders: [nextOrder, ...data.orders] });
   }
 
+  function buildPayoutProfile(input) {
+    if (!input || typeof input !== 'object') return null;
+    const method = normalize(input.method);
+    const businessName = normalize(input.businessName);
+    const reference = normalize(input.reference);
+    const payoutEmail = normalizeEmail(input.payoutEmail);
+    if (!method && !businessName && !reference && !payoutEmail) return null;
+    return { method, businessName, reference, payoutEmail };
+  }
+
   function buildPrintShopDetails(input) {
     if (!input) return null;
 
+    const rawStatus = normalize(input.verificationStatus);
+    const verificationStatus = ['draft', 'pending', 'verified'].includes(rawStatus) ? rawStatus : 'draft';
+
     return {
       location: normalize(input.location),
+      serviceRadiusMiles: Number(input.serviceRadiusMiles || 0),
       minimumOrderQuantity: Number(input.minimumOrderQuantity || 0),
       sameDaySamplesAvailable: Boolean(input.sameDaySamplesAvailable),
       sameDayFulfillmentAvailable: Boolean(input.sameDayFulfillmentAvailable),
@@ -352,6 +367,11 @@
       fulfillmentMethods: Array.isArray(input.fulfillmentMethods)
         ? input.fulfillmentMethods.map((value) => normalize(value)).filter(Boolean)
         : [],
+      payout: buildPayoutProfile(input.payout),
+      verificationStatus,
+      submittedForVerificationAt: normalize(input.submittedForVerificationAt) || null,
+      verifiedAt: normalize(input.verifiedAt) || null,
+      activatedAt: normalize(input.activatedAt) || null,
     };
   }
 
@@ -396,7 +416,7 @@
     }
 
     const nextPrintShop = nextRole === 'print-shop'
-      ? buildPrintShopDetails(updates.printShop != null ? updates.printShop : existing.printShop)
+      ? buildPrintShopDetails({ ...(existing.printShop || {}), ...(updates.printShop || {}) })
       : null;
 
     accounts[index] = {
@@ -483,6 +503,66 @@
     setCurrentUserId('');
   }
 
+  function readNetworkOrders() {
+    try {
+      const raw = localStorage.getItem(KEYS.NETWORK_ORDERS);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeNetworkOrders(orders) {
+    localStorage.setItem(KEYS.NETWORK_ORDERS, JSON.stringify(Array.isArray(orders) ? orders : []));
+    return readNetworkOrders();
+  }
+
+  function addNetworkOrder(input) {
+    const orders = readNetworkOrders();
+    const order = {
+      id: normalize(input && input.id) || `net_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: normalize(input && input.status) || 'assigned',
+      customerAccountId: normalize(input && input.customerAccountId),
+      customerName: normalize(input && input.customerName),
+      customerEmail: normalizeEmail(input && input.customerEmail),
+      projectName: normalize(input && input.projectName),
+      quantity: Number((input && input.quantity) || 0),
+      shirtColor: normalize(input && input.shirtColor),
+      placement: normalize(input && input.placement),
+      deliveryMethod: normalize(input && input.deliveryMethod),
+      rushOrder: Boolean(input && input.rushOrder),
+      shippingAddress: normalize(input && input.shippingAddress),
+      customerLocation: normalize(input && input.customerLocation),
+      assignedShopId: normalize(input && input.assignedShopId),
+      assignedShopName: normalize(input && input.assignedShopName),
+      distanceMiles: input && input.distanceMiles != null ? Number(input.distanceMiles) : null,
+      sameDayCapable: Boolean(input && input.sameDayCapable),
+      pricing: input && input.pricing ? input.pricing : null,
+      reference: normalize(input && input.reference),
+      declinedShopIds: Array.isArray(input && input.declinedShopIds) ? input.declinedShopIds : [],
+    };
+    orders.unshift(order);
+    writeNetworkOrders(orders);
+    return order;
+  }
+
+  function updateNetworkOrder(orderId, patch) {
+    const orders = readNetworkOrders();
+    const index = orders.findIndex((item) => item.id === orderId);
+    if (index === -1) return null;
+    orders[index] = { ...orders[index], ...(patch || {}), updatedAt: new Date().toISOString() };
+    writeNetworkOrders(orders);
+    return orders[index];
+  }
+
+  function getOrdersForShop(shopId) {
+    if (!shopId) return [];
+    return readNetworkOrders().filter((order) => order.assignedShopId === shopId);
+  }
+
   async function signInUser(credentials) {
     const email = normalizeEmail(credentials.email);
     const password = String(credentials.password || '');
@@ -544,6 +624,16 @@
     return { ok: true };
   }
 
+  async function setPrintShopStage(accountId, patch) {
+    const account = getAccountById(accountId);
+    if (!account || account.role !== 'print-shop') {
+      return { ok: false, error: 'not-print-shop' };
+    }
+    return updateAccount(accountId, {
+      printShop: { ...(account.printShop || {}), ...(patch || {}) },
+    });
+  }
+
   window.TMAuth = {
     KEYS,
     normalize,
@@ -555,6 +645,7 @@
     updateAccount,
     changePassword,
     deleteAccount,
+    setPrintShopStage,
     signInUser,
     setCurrentUserId,
     getCurrentUserId,
@@ -573,6 +664,11 @@
     deletePaymentMethod,
     addOrderForAccount,
     signOutCurrentUser,
+    readNetworkOrders,
+    writeNetworkOrders,
+    addNetworkOrder,
+    updateNetworkOrder,
+    getOrdersForShop,
     isAdminAuthed,
     signInAdmin,
     signOutAdmin,

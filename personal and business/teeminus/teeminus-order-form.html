@@ -607,7 +607,7 @@ select.inp {
   <!-- ===== NAVBAR ===== -->
   <div class="navbar">
     <div class="nav-buttons">
-      <a href="home.html" class="nav-btn">Home</a>
+      <a href="index.html" class="nav-btn">Home</a>
       <a href="shop.html" class="nav-btn">Shop</a>
       <a href="about.html" class="nav-btn">About</a>
       <a href="contact.html" class="nav-btn">Contact</a>
@@ -630,6 +630,7 @@ select.inp {
     <div class="success-check">✓</div>
     <h2>Quote request sent.</h2>
     <p>We'll review your details and email you a quote within 1 business day. A digital proof will be sent before anything goes to press.</p>
+    <div id="assignment-result"></div>
     <button class="btn-dismiss" onclick="dismissSuccess()">Got it</button>
   </div>
 </div>
@@ -900,6 +901,7 @@ select.inp {
 </footer>
 
 <script src="auth.js"></script>
+<script src="routing.js"></script>
 <script>
 
 
@@ -1307,6 +1309,47 @@ function removeDesignBlock(id) {
   if (block) block.remove();
 }
 
+/* ── ROUTING RESULT ─────────────────────────────────────────────── */
+function escapeAssign(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+function renderAssignmentResult(assignment) {
+  const el = document.getElementById('assignment-result');
+  if (!el) return;
+  if (!assignment) { el.innerHTML = ''; return; }
+
+  const boxBase = "margin:1rem 0;padding:0.9rem 1rem;text-align:left;font-family:'Courier New',Courier,monospace;";
+  const assigned = assignment.assigned;
+
+  if (!assigned) {
+    el.innerHTML = `<div style="${boxBase}border:2px solid #7a3c00;background:#fff8ee;color:#7a3c00;">`
+      + 'No in-network shop can take this order automatically yet. The Tee-Minus team will place it with a partner manually.'
+      + '</div>';
+    return;
+  }
+
+  const shop = assigned.shop;
+  const name = shop.accountName || shop.name || 'Print Shop';
+  const location = (shop.printShop || {}).location || '';
+  const distance = Number.isFinite(assigned.distanceMiles) ? window.TMRouting.formatMiles(assigned.distanceMiles) : '';
+  const p = assignment.pricing;
+
+  const metaParts = [location, distance, assigned.sameDayCapable ? 'Same-day capable' : ''].filter(Boolean);
+
+  el.innerHTML = `<div style="${boxBase}border:2px solid #055034;background:#eef7f1;">`
+    + `<div style="font-weight:bold;color:#055034;margin-bottom:4px;">Routed to ${escapeAssign(name)}</div>`
+    + `<div style="font-size:0.9rem;color:#333;">${escapeAssign(metaParts.join(' · '))}</div>`
+    + (p ? `<div style="margin-top:8px;font-size:0.85rem;color:#333;display:grid;gap:2px;">`
+        + `<span>Order subtotal: ${escapeAssign(window.TMRouting.formatMoney(p.subtotal))}</span>`
+        + `<span>Shop payout: ${escapeAssign(window.TMRouting.formatMoney(p.shopPayout))}</span>`
+        + `<span>Tee-Minus revenue: ${escapeAssign(window.TMRouting.formatMoney(p.platformRevenue))}</span>`
+        + `</div>` : '')
+    + `</div>`;
+}
+
 /* ── SUBMIT ─────────────────────────────────────────────────────── */
 document.getElementById('quote-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -1348,6 +1391,46 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error(result.error || 'Unable to save quote request');
 
+    // Step 3: route the order to the nearest capable print shop
+    let assignment = null;
+    if (window.TMRouting) {
+      submitButton.textContent = 'Finding your shop…';
+      try {
+        assignment = await window.TMRouting.assignShop({
+          customerLocation: payload.logistics.shippingAddress || null,
+          quantity: payload.design.totalPieces,
+          rush: Boolean(payload.logistics.rushOrder),
+          sameDayRequested: false,
+          fulfillmentMethod: payload.logistics.delivery === 'shipping' ? 'ship-it-to-me' : 'pickup',
+        });
+      } catch (routingError) {
+        console.warn('Routing failed:', routingError);
+      }
+    }
+
+    const assignedShop = assignment && assignment.assigned ? assignment.assigned : null;
+    const pricing = assignment ? assignment.pricing : null;
+    payload.routing = {
+      assignedShop: assignedShop
+        ? {
+            id: assignedShop.shop.id,
+            name: assignedShop.shop.accountName || assignedShop.shop.name,
+            location: (assignedShop.shop.printShop || {}).location || '',
+            distanceMiles: Number.isFinite(assignedShop.distanceMiles) ? Math.round(assignedShop.distanceMiles * 10) / 10 : null,
+            sameDayCapable: assignedShop.sameDayCapable,
+          }
+        : null,
+      pricing: pricing
+        ? {
+            subtotal: pricing.subtotal,
+            platformMargin: pricing.platformMargin,
+            commission: pricing.commission,
+            platformRevenue: pricing.platformRevenue,
+            shopPayout: pricing.shopPayout,
+          }
+        : null,
+    };
+
     if (window.TMAuth && window.TMAuth.getCurrentAccount && window.TMAuth.addOrderForAccount) {
       const account = window.TMAuth.getCurrentAccount();
       if (account) {
@@ -1356,6 +1439,7 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
           summary: payload.context || '',
           deliveryMethod: payload.logistics.delivery,
           quantity: payload.design.totalPieces,
+          total: payload.routing.pricing ? payload.routing.pricing.subtotal : 0,
           reference: result.file || '',
           accountRole: account.role,
           details: {
@@ -1363,11 +1447,38 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
             placement: payload.design.placement,
             rushOrder: Boolean(payload.logistics.rushOrder),
             paymentMethodLast4: payload.billing.paymentMethodLast4,
+            assignedShop: payload.routing.assignedShop,
+            pricing: payload.routing.pricing,
           },
         });
       }
     }
 
+    if (window.TMAuth && window.TMAuth.addNetworkOrder) {
+      const routedAccount = window.TMAuth.getCurrentAccount ? window.TMAuth.getCurrentAccount() : null;
+      window.TMAuth.addNetworkOrder({
+        customerAccountId: routedAccount ? routedAccount.id : '',
+        customerName: payload.client.name,
+        customerEmail: payload.client.email,
+        projectName: payload.projectName,
+        quantity: payload.design.totalPieces,
+        shirtColor: payload.design.shirtColor,
+        placement: payload.design.placement,
+        deliveryMethod: payload.logistics.delivery,
+        rushOrder: Boolean(payload.logistics.rushOrder),
+        shippingAddress: payload.logistics.shippingAddress || '',
+        customerLocation: payload.logistics.shippingAddress || '',
+        assignedShopId: payload.routing.assignedShop ? payload.routing.assignedShop.id : '',
+        assignedShopName: payload.routing.assignedShop ? payload.routing.assignedShop.name : '',
+        distanceMiles: payload.routing.assignedShop ? payload.routing.assignedShop.distanceMiles : null,
+        sameDayCapable: payload.routing.assignedShop ? payload.routing.assignedShop.sameDayCapable : false,
+        pricing: payload.routing.pricing,
+        reference: result.file || '',
+        status: payload.routing.assignedShop ? 'assigned' : 'unassigned',
+      });
+    }
+
+    renderAssignmentResult(assignment);
     console.log('%c✅ Tee-Minus Quote Saved', 'color:#055034;font-weight:bold;font-size:14px');
     console.log(JSON.stringify(payload, null, 2));
     console.log('Saved PDF:', result.file);

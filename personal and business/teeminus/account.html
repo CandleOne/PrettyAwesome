@@ -41,6 +41,8 @@
 
         <div class="account-links">
           <a href="teeminus-order-form.html" class="success-link alt">Start a project</a>
+          <a href="shop-onboarding.html" class="success-link alt" id="account-onboarding-link" hidden>Shop Onboarding</a>
+          <a href="shop-orders.html" class="success-link alt" id="account-orders-link" hidden>Order Queue</a>
           <a href="address-book.html" class="success-link alt">Address Book</a>
           <a href="payments.html" class="success-link alt">Payments</a>
           <a href="order-history.html" class="success-link alt">Order History</a>
@@ -73,6 +75,9 @@
               <div id="account-location-results" class="location-results" hidden role="listbox" aria-label="Location suggestions"></div>
             </div>
             <p class="field-note" id="account-location-note">Type to narrow U.S. towns and cities.</p>
+
+            <label for="account-service-radius">Service radius (miles)</label>
+            <input type="number" id="account-service-radius" min="0" step="1" placeholder="e.g. 25">
 
             <label for="account-min-order-qty">Minimum Order Quantity</label>
             <input type="number" id="account-min-order-qty" min="1" step="1">
@@ -210,6 +215,7 @@
     const shopLocationInput = document.getElementById('account-shop-location');
     const locationResults = document.getElementById('account-location-results');
     const locationNote = document.getElementById('account-location-note');
+    const serviceRadiusInput = document.getElementById('account-service-radius');
     const minOrderQtyInput = document.getElementById('account-min-order-qty');
     const sameDaySamplesInput = document.getElementById('account-same-day-samples');
     const sameDayFulfillmentInput = document.getElementById('account-same-day-fulfillment');
@@ -280,16 +286,27 @@
 
       if (isPrintShop) {
         const methods = (printShopDetails.fulfillmentMethods || []).join(', ') || 'Not provided';
+        const verStatus = printShopDetails.activatedAt ? 'Live in marketplace'
+          : printShopDetails.verificationStatus === 'verified' ? 'Verified'
+          : printShopDetails.verificationStatus === 'pending' ? 'Pending review'
+          : 'Draft (not submitted)';
+        const payout = printShopDetails.payout;
+        const payoutText = payout && payout.method
+          ? `${payout.method}${payout.payoutEmail ? ' · ' + payout.payoutEmail : ''}`
+          : 'Not set';
         roleSummaryEl.innerHTML = [
           '<p><strong>Partner Snapshot</strong></p>',
           `<p>Location: ${location}</p>`,
+          `<p>Service Radius: ${printShopDetails.serviceRadiusMiles ? printShopDetails.serviceRadiusMiles + ' mi' : 'Not set'}</p>`,
+          `<p>Verification: ${verStatus}</p>`,
+          `<p>Payout: ${payoutText}</p>`,
           `<p>Minimum Order Quantity: ${printShopDetails.minimumOrderQuantity || 0}</p>`,
           `<p>Same Day Samples: ${printShopDetails.sameDaySamplesAvailable ? 'Yes' : 'No'}</p>`,
           `<p>Same Day Fulfillment: ${printShopDetails.sameDayFulfillmentAvailable ? 'Yes' : 'No'}</p>`,
           `<p>Same Day Max Quantity: ${printShopDetails.sameDayFulfillmentMaxQuantity || 0}</p>`,
           `<p>Fulfillment Methods: ${methods}</p>`,
         ].join('');
-        primaryLink.textContent = 'View Quote Intake';
+        if (primaryLink) primaryLink.textContent = 'View Quote Intake';
       } else {
         roleSummaryEl.innerHTML = [
           '<p><strong>Customer Snapshot</strong></p>',
@@ -297,8 +314,13 @@
           `<p>Current session: ${status === 'suspended' ? 'Unavailable' : 'Active'}</p>`,
           '<p>Use the quote form any time to start a new project.</p>',
         ].join('');
-        primaryLink.textContent = 'Start a Quote';
+        if (primaryLink) primaryLink.textContent = 'Start a Quote';
       }
+
+      const onboardingLink = document.getElementById('account-onboarding-link');
+      if (onboardingLink) onboardingLink.hidden = !isPrintShop;
+      const ordersLink = document.getElementById('account-orders-link');
+      if (ordersLink) ordersLink.hidden = !isPrintShop;
 
       populateForms(account);
       updatePrintShopFormState(account);
@@ -331,6 +353,7 @@
         profileHandleInput.placeholder = 'e.g. Northside Prints';
         const details = account.printShop || {};
         shopLocationInput.value = details.location || '';
+        serviceRadiusInput.value = details.serviceRadiusMiles || '';
         minOrderQtyInput.value = details.minimumOrderQuantity || '';
         sameDaySamplesInput.checked = Boolean(details.sameDaySamplesAvailable);
         sameDayFulfillmentInput.checked = Boolean(details.sameDayFulfillmentAvailable);
@@ -343,6 +366,7 @@
         profileHandleLabel.textContent = 'Username';
         profileHandleInput.placeholder = 'e.g. tee_fan_24';
         shopLocationInput.value = '';
+        serviceRadiusInput.value = '';
         minOrderQtyInput.value = '';
         sameDaySamplesInput.checked = false;
         sameDayFulfillmentInput.checked = false;
@@ -357,6 +381,7 @@
     function buildPrintShopPayload() {
       return {
         location: shopLocationInput.value,
+        serviceRadiusMiles: Number(serviceRadiusInput.value || 0),
         minimumOrderQuantity: Number(minOrderQtyInput.value || 0),
         sameDaySamplesAvailable: sameDaySamplesInput.checked,
         sameDayFulfillmentAvailable: sameDayFulfillmentInput.checked,

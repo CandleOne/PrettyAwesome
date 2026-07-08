@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop Onboarding | Tee-Minus</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .onboarding-page .status-banner {
+      border: 0.15vw solid #000;
+      background: #fffef8;
+      padding: 1rem 1.2rem;
+      box-shadow: 5px 5px 0 #055034;
+      margin-bottom: 1.5rem;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .onboarding-page .status-banner.pending { box-shadow: 5px 5px 0 #7a3c00; }
+    .onboarding-page .status-banner.live { box-shadow: 5px 5px 0 #055034; }
+    .onboarding-page .checklist { list-style: none; margin: 0.8rem 0 0; padding: 0; }
+    .onboarding-page .checklist li {
+      font-family: 'Courier New', Courier, monospace;
+      padding: 4px 0;
+    }
+    .onboarding-page .checklist li::before { content: '☐ '; }
+    .onboarding-page .checklist li.done::before { content: '☑ '; color: #055034; }
+    .onboarding-page .checklist li.done { color: #055034; }
+    .onboarding-page .stepper {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .onboarding-page .stage-chip {
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      font-size: 0.85rem;
+      padding: 5px 12px;
+      border: 1.5px solid #000;
+      background: #fff;
+    }
+    .onboarding-page .stage-chip.active { background: #055034; color: antiquewhite; border-color: #055034; }
+    .onboarding-page .geo-note { font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; color: #444; }
+  </style>
+</head>
+<body class="registration-page onboarding-page">
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="index.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="account.html" class="nav-btn" data-account-link>Account</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <main class="registration-main">
+    <section class="registration-card">
+      <h1>Shop Onboarding</h1>
+      <p>Complete your service area and payout details, then submit for verification. Once Tee-Minus verifies and activates your shop, you go live in the marketplace and start receiving nearby orders.</p>
+
+      <div id="onboarding-alert" class="account-alert" hidden></div>
+
+      <div id="not-print-shop" hidden>
+        <p class="field-note">This page is for print shop partners. Sign in with a print shop account, or <a href="registration.html">register a print shop</a>.</p>
+        <div class="account-links">
+          <a href="account.html" class="success-link alt">Go to Account</a>
+        </div>
+      </div>
+
+      <div id="onboarding-body" hidden>
+        <div class="stepper">
+          <span class="stage-chip" data-stage="draft">1. Draft</span>
+          <span class="stage-chip" data-stage="pending">2. Pending review</span>
+          <span class="stage-chip" data-stage="verified">3. Verified</span>
+          <span class="stage-chip" data-stage="active">4. Live</span>
+        </div>
+
+        <div class="status-banner" id="status-banner"></div>
+
+        <section class="account-section">
+          <h2 class="account-subtitle">1. Service area &amp; capabilities</h2>
+          <form class="registration-form" id="service-area-form">
+            <label for="ob-location">Shop location (City, ST or full address)</label>
+            <input type="text" id="ob-location" placeholder="e.g. Austin, TX" required>
+            <p class="geo-note" id="geo-note"></p>
+
+            <label for="ob-radius">Service radius (miles)</label>
+            <input type="number" id="ob-radius" min="0" step="1" placeholder="e.g. 25">
+            <p class="field-note">Orders farther than this from your shop won't be routed to you. Leave blank/0 for no distance limit.</p>
+
+            <label for="ob-moq">Minimum order quantity</label>
+            <input type="number" id="ob-moq" min="0" step="1">
+
+            <label class="checkbox-label" for="ob-samples">
+              <input type="checkbox" id="ob-samples"> Same day samples available
+            </label>
+
+            <label class="checkbox-label" for="ob-sameday">
+              <input type="checkbox" id="ob-sameday"> Same day fulfillment available up to quantity
+            </label>
+
+            <label for="ob-sameday-max">Same day fulfillment max quantity</label>
+            <input type="number" id="ob-sameday-max" min="0" step="1">
+
+            <fieldset class="checkbox-group">
+              <legend>Accepted fulfillment methods</legend>
+              <label class="checkbox-label" for="ob-method-pickup">
+                <input type="checkbox" id="ob-method-pickup" name="ob-methods[]" value="pickup"> Pick up
+              </label>
+              <label class="checkbox-label" for="ob-method-local">
+                <input type="checkbox" id="ob-method-local" name="ob-methods[]" value="local-delivery"> Local delivery
+              </label>
+              <label class="checkbox-label" for="ob-method-ship">
+                <input type="checkbox" id="ob-method-ship" name="ob-methods[]" value="ship-it-to-me"> Ship it to me
+              </label>
+            </fieldset>
+
+            <div class="registration-actions">
+              <button type="submit">Save service area</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="account-section">
+          <h2 class="account-subtitle">2. Payout details</h2>
+          <form class="registration-form" id="payout-form">
+            <label for="ob-payout-method">Payout method</label>
+            <select id="ob-payout-method">
+              <option value="">— Select —</option>
+              <option value="bank">Bank transfer (ACH)</option>
+              <option value="paypal">PayPal</option>
+              <option value="venmo">Venmo</option>
+              <option value="check">Mailed check</option>
+            </select>
+
+            <label for="ob-payout-business">Business / payee name</label>
+            <input type="text" id="ob-payout-business" placeholder="e.g. Northside Prints LLC">
+
+            <label for="ob-payout-email">Payout email</label>
+            <input type="email" id="ob-payout-email" placeholder="payouts@yourshop.com">
+
+            <label for="ob-payout-ref">Account reference (last 4 or handle)</label>
+            <input type="text" id="ob-payout-ref" placeholder="e.g. ****1234 or @yourshop">
+            <p class="field-note">Store only a reference here — never full bank or card numbers.</p>
+
+            <div class="registration-actions">
+              <button type="submit">Save payout details</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="account-section">
+          <h2 class="account-subtitle">3. Submit for verification</h2>
+          <p class="field-note">Once your service area and payout are complete, submit your shop for Tee-Minus review. We verify and activate approved shops.</p>
+          <div class="registration-actions">
+            <button type="button" id="submit-verification-btn">Submit for verification</button>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-column">
+      <h1>Our Materials</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+    <div class="footer-column">
+      <h1>Our Ethics</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+    <div class="footer-column">
+      <h1>Our Legal Stuff</h1>
+      <p>Learn About our cotton</p>
+      <p>Learn About our hemp</p>
+      <p>Learn About our wool</p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="routing.js"></script>
+  <script>
+    const notPrintShopEl = document.getElementById('not-print-shop');
+    const onboardingBody = document.getElementById('onboarding-body');
+    const alertEl = document.getElementById('onboarding-alert');
+    const statusBanner = document.getElementById('status-banner');
+    const geoNote = document.getElementById('geo-note');
+
+    const serviceForm = document.getElementById('service-area-form');
+    const locationInput = document.getElementById('ob-location');
+    const radiusInput = document.getElementById('ob-radius');
+    const moqInput = document.getElementById('ob-moq');
+    const samplesInput = document.getElementById('ob-samples');
+    const sameDayInput = document.getElementById('ob-sameday');
+    const sameDayMaxInput = document.getElementById('ob-sameday-max');
+    const methodBoxes = Array.from(document.querySelectorAll('input[name="ob-methods[]"]'));
+
+    const payoutForm = document.getElementById('payout-form');
+    const payoutMethod = document.getElementById('ob-payout-method');
+    const payoutBusiness = document.getElementById('ob-payout-business');
+    const payoutEmail = document.getElementById('ob-payout-email');
+    const payoutRef = document.getElementById('ob-payout-ref');
+
+    const submitBtn = document.getElementById('submit-verification-btn');
+
+    function showAlert(message, tone) {
+      alertEl.textContent = message;
+      alertEl.className = `account-alert ${tone || 'info'}`;
+      alertEl.hidden = false;
+    }
+
+    function serviceAreaComplete(details) {
+      return Boolean(details && details.location && (details.fulfillmentMethods || []).length);
+    }
+
+    function payoutComplete(details) {
+      const p = details && details.payout;
+      return Boolean(p && p.method && (p.payoutEmail || p.reference));
+    }
+
+    function currentStage(details) {
+      if (details && details.activatedAt) return 'active';
+      if (details && details.verificationStatus === 'verified') return 'verified';
+      if (details && details.verificationStatus === 'pending') return 'pending';
+      return 'draft';
+    }
+
+    function renderStatus(account) {
+      const details = account.printShop || {};
+      const stage = currentStage(details);
+      document.querySelectorAll('.stage-chip').forEach((chip) => {
+        chip.classList.toggle('active', chip.dataset.stage === stage);
+      });
+
+      const svcDone = serviceAreaComplete(details);
+      const payDone = payoutComplete(details);
+      const submitted = details.verificationStatus === 'pending' || details.verificationStatus === 'verified' || Boolean(details.activatedAt);
+
+      let headline = '';
+      let tone = '';
+      if (stage === 'active') { headline = '🎉 Your shop is LIVE. Nearby orders can now be routed to you.'; tone = 'live'; }
+      else if (stage === 'verified') { headline = 'Verified! Tee-Minus is activating your shop — you go live shortly.'; tone = 'live'; }
+      else if (stage === 'pending') { headline = 'Submitted. Your shop is pending Tee-Minus review.'; tone = 'pending'; }
+      else { headline = 'Draft. Finish the steps below and submit for verification.'; tone = ''; }
+
+      statusBanner.className = `status-banner ${tone}`;
+      statusBanner.innerHTML = `
+        <strong>${headline}</strong>
+        <ul class="checklist">
+          <li class="${svcDone ? 'done' : ''}">Service area &amp; fulfillment set</li>
+          <li class="${payDone ? 'done' : ''}">Payout details saved</li>
+          <li class="${submitted ? 'done' : ''}">Submitted for verification</li>
+          <li class="${details.verificationStatus === 'verified' || details.activatedAt ? 'done' : ''}">Verified by Tee-Minus</li>
+          <li class="${details.activatedAt ? 'done' : ''}">Activated / live in marketplace</li>
+        </ul>
+        ${stage === 'active' ? '<div class="account-links"><a href="shop.html" class="success-link alt">View marketplace</a></div>' : ''}`;
+
+      submitBtn.disabled = !(svcDone && payDone) || submitted;
+      submitBtn.textContent = submitted ? 'Submitted' : 'Submit for verification';
+    }
+
+    function populate(account) {
+      const d = account.printShop || {};
+      locationInput.value = d.location || '';
+      radiusInput.value = d.serviceRadiusMiles || '';
+      moqInput.value = d.minimumOrderQuantity || '';
+      samplesInput.checked = Boolean(d.sameDaySamplesAvailable);
+      sameDayInput.checked = Boolean(d.sameDayFulfillmentAvailable);
+      sameDayMaxInput.value = d.sameDayFulfillmentMaxQuantity || '';
+      methodBoxes.forEach((box) => {
+        box.checked = Array.isArray(d.fulfillmentMethods) && d.fulfillmentMethods.includes(box.value);
+      });
+      const p = d.payout || {};
+      payoutMethod.value = p.method || '';
+      payoutBusiness.value = p.businessName || '';
+      payoutEmail.value = p.payoutEmail || '';
+      payoutRef.value = p.reference || '';
+    }
+
+    serviceForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const account = window.TMAuth.getCurrentAccount();
+      if (!account || account.role !== 'print-shop') return;
+
+      const methods = methodBoxes.filter((box) => box.checked).map((box) => box.value);
+      if (!locationInput.value.trim()) { showAlert('Enter your shop location.', 'error'); return; }
+      if (!methods.length) { showAlert('Select at least one fulfillment method.', 'error'); return; }
+
+      geoNote.textContent = 'Checking that your location resolves…';
+      const coords = await window.TMRouting.geocode(locationInput.value.trim());
+      geoNote.textContent = coords
+        ? `Location resolves to ${coords.formatted}.`
+        : 'Heads up: we could not resolve that location yet (is the local server running?). Saved anyway.';
+
+      const result = await window.TMAuth.setPrintShopStage(account.id, {
+        location: locationInput.value.trim(),
+        serviceRadiusMiles: Number(radiusInput.value || 0),
+        minimumOrderQuantity: Number(moqInput.value || 0),
+        sameDaySamplesAvailable: samplesInput.checked,
+        sameDayFulfillmentAvailable: sameDayInput.checked,
+        sameDayFulfillmentMaxQuantity: Number(sameDayMaxInput.value || 0),
+        fulfillmentMethods: methods,
+      });
+
+      if (!result.ok) { showAlert('Could not save service area.', 'error'); return; }
+      showAlert('Service area saved.', 'success');
+      renderStatus(result.account);
+    });
+
+    payoutForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const account = window.TMAuth.getCurrentAccount();
+      if (!account || account.role !== 'print-shop') return;
+
+      if (!payoutMethod.value) { showAlert('Choose a payout method.', 'error'); return; }
+      if (!payoutEmail.value.trim() && !payoutRef.value.trim()) {
+        showAlert('Add a payout email or account reference.', 'error');
+        return;
+      }
+
+      const result = await window.TMAuth.setPrintShopStage(account.id, {
+        payout: {
+          method: payoutMethod.value,
+          businessName: payoutBusiness.value.trim(),
+          payoutEmail: payoutEmail.value.trim(),
+          reference: payoutRef.value.trim(),
+        },
+      });
+
+      if (!result.ok) { showAlert('Could not save payout details.', 'error'); return; }
+      showAlert('Payout details saved.', 'success');
+      renderStatus(result.account);
+    });
+
+    submitBtn.addEventListener('click', async () => {
+      const account = window.TMAuth.getCurrentAccount();
+      if (!account || account.role !== 'print-shop') return;
+
+      const result = await window.TMAuth.setPrintShopStage(account.id, {
+        verificationStatus: 'pending',
+        submittedForVerificationAt: new Date().toISOString(),
+      });
+
+      if (!result.ok) { showAlert('Could not submit for verification.', 'error'); return; }
+      showAlert('Submitted! Tee-Minus will review your shop.', 'success');
+      renderStatus(result.account);
+    });
+
+    (function init() {
+      const account = window.TMAuth.getCurrentAccount();
+      if (!account || account.role !== 'print-shop') {
+        notPrintShopEl.hidden = false;
+        return;
+      }
+      onboardingBody.hidden = false;
+      populate(account);
+      renderStatus(account);
+    })();
+  </script>
+  <script src="nav-auth.js"></script>
+</body>
+</html>

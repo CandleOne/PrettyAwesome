@@ -69,10 +69,31 @@
               <th>Status</th>
               <th>Account</th>
               <th>Location</th>
+              <th>Verification</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="admin-account-table-body"></tbody>
+        </table>
+      </div>
+
+      <h2 class="account-subtitle" style="margin-top:1.5rem">Network Orders</h2>
+      <p class="field-note">Orders routed across the print-shop network. "Unassigned" means no shop could take it automatically and it needs manual placement.</p>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Created</th>
+              <th>Project</th>
+              <th>Customer</th>
+              <th>Pieces</th>
+              <th>Assigned Shop</th>
+              <th>Status</th>
+              <th>Shop Payout</th>
+              <th>Tee-Minus</th>
+            </tr>
+          </thead>
+          <tbody id="admin-network-orders-body"></tbody>
         </table>
       </div>
     </section>
@@ -128,6 +149,8 @@
       const active = accounts.filter((a) => a.status !== 'suspended').length;
       const suspended = accounts.filter((a) => a.status === 'suspended').length;
       const sameDayFulfillment = accounts.filter((a) => a.printShop && a.printShop.sameDayFulfillmentAvailable).length;
+      const pendingReview = accounts.filter((a) => a.printShop && a.printShop.verificationStatus === 'pending').length;
+      const liveShops = accounts.filter((a) => a.printShop && a.printShop.activatedAt).length;
 
       return [
         { label: 'Total Accounts', value: total },
@@ -136,6 +159,8 @@
         { label: 'Active', value: active },
         { label: 'Suspended', value: suspended },
         { label: 'Same-Day Fulfillment Shops', value: sameDayFulfillment },
+        { label: 'Pending Verification', value: pendingReview },
+        { label: 'Live Shops', value: liveShops },
       ];
     }
 
@@ -172,7 +197,7 @@
       const filtered = accounts.filter(matchesFilters);
 
       if (!filtered.length) {
-        tableBody.innerHTML = '<tr><td colspan="8">No accounts match your filters.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="9">No accounts match your filters.</td></tr>';
         return;
       }
 
@@ -181,6 +206,27 @@
           const roleLabel = account.role === 'print-shop' ? 'Print Shop Partner' : 'Customer';
           const location = account.printShop && account.printShop.location ? account.printShop.location : '-';
           const status = account.status || 'active';
+          const ps = account.printShop || null;
+
+          let verification = '-';
+          let shopActions = '';
+          if (account.role === 'print-shop') {
+            if (ps && ps.activatedAt) verification = 'Live';
+            else if (ps && ps.verificationStatus === 'verified') verification = 'Verified';
+            else if (ps && ps.verificationStatus === 'pending') verification = 'Pending';
+            else verification = 'Draft';
+
+            if (!ps || !ps.activatedAt) {
+              if (ps && ps.verificationStatus === 'verified') {
+                shopActions += `<button type="button" data-action="activate" data-id="${account.id}">Activate</button>`;
+              } else {
+                shopActions += `<button type="button" data-action="verify" data-id="${account.id}">Verify</button>`;
+              }
+            } else {
+              shopActions += `<button type="button" data-action="deactivate" data-id="${account.id}">Deactivate</button>`;
+            }
+          }
+
           return `
             <tr>
               <td>${formatDate(account.createdAt)}</td>
@@ -190,8 +236,10 @@
               <td>${status}</td>
               <td>${account.accountName || '-'}</td>
               <td>${location}</td>
+              <td>${verification}</td>
               <td>
                 <div class="admin-actions-inline">
+                  ${shopActions}
                   <button type="button" data-action="toggle" data-id="${account.id}">${status === 'suspended' ? 'Activate' : 'Suspend'}</button>
                   <button type="button" data-action="delete" data-id="${account.id}">Delete</button>
                 </div>
@@ -206,6 +254,38 @@
       const accounts = window.TMAuth.readAccounts();
       renderMetrics(accounts);
       renderTable(accounts);
+      renderNetworkOrders();
+    }
+
+    function money(value) {
+      return `$${(Number(value) || 0).toFixed(2)}`;
+    }
+
+    function renderNetworkOrders() {
+      const body = document.getElementById('admin-network-orders-body');
+      if (!body || !window.TMAuth.readNetworkOrders) return;
+      const orders = window.TMAuth.readNetworkOrders();
+      if (!orders.length) {
+        body.innerHTML = '<tr><td colspan="8">No network orders yet.</td></tr>';
+        return;
+      }
+      body.innerHTML = orders
+        .map((order) => {
+          const pricing = order.pricing || {};
+          const shopName = order.assignedShopName || (order.status === 'unassigned' ? 'Unassigned' : '-');
+          return `
+            <tr>
+              <td>${formatDate(order.createdAt)}</td>
+              <td>${order.projectName || '-'}</td>
+              <td>${order.customerName || '-'}</td>
+              <td>${order.quantity || 0}</td>
+              <td>${shopName}</td>
+              <td>${order.status || '-'}</td>
+              <td>${money(pricing.shopPayout)}</td>
+              <td>${money(pricing.platformRevenue)}</td>
+            </tr>`;
+        })
+        .join('');
     }
 
     function setAuthed(isAuthed) {
@@ -254,6 +334,23 @@
       if (action === 'toggle') {
         const current = accounts[idx].status || 'active';
         accounts[idx].status = current === 'suspended' ? 'active' : 'suspended';
+      }
+
+      if (action === 'verify' && accounts[idx].printShop) {
+        accounts[idx].printShop.verificationStatus = 'verified';
+        accounts[idx].printShop.verifiedAt = new Date().toISOString();
+      }
+
+      if (action === 'activate' && accounts[idx].printShop) {
+        accounts[idx].printShop.verificationStatus = 'verified';
+        if (!accounts[idx].printShop.verifiedAt) {
+          accounts[idx].printShop.verifiedAt = new Date().toISOString();
+        }
+        accounts[idx].printShop.activatedAt = new Date().toISOString();
+      }
+
+      if (action === 'deactivate' && accounts[idx].printShop) {
+        accounts[idx].printShop.activatedAt = null;
       }
 
       if (action === 'delete') {

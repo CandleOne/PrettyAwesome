@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Contact | Tee-Minus</title>
+        <meta name="description" content="Get in touch with Tee-Minus — the local print-shop network.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body class="registration-page">
+        <div class="navbar">
+            <div class="nav-buttons">
+                <a href="index.html" class="nav-btn">Home</a>
+                <a href="shop.html" class="nav-btn">Shop</a>
+                <a href="about.html" class="nav-btn">About</a>
+                <a href="contact.html" class="nav-btn">Contact</a>
+                <a href="account.html" class="nav-btn" data-account-link>Account</a>
+                <a href="registration.html" class="lg-nav-btn">Get Started</a>
+            </div>
+        </div>
+
+        <main class="registration-main">
+            <section class="registration-card">
+                <h1>Get in touch</h1>
+                <p>Questions about an order, becoming a print-shop partner, or anything else? Send us a note and we'll reply within one business day.</p>
+
+                <div id="contact-alert" class="account-alert" hidden></div>
+
+                <form class="registration-form" id="contact-form">
+                    <label for="contact-name">Name</label>
+                    <input type="text" id="contact-name" required>
+
+                    <label for="contact-email">Email</label>
+                    <input type="email" id="contact-email" required>
+
+                    <label for="contact-topic">Topic</label>
+                    <select id="contact-topic">
+                        <option value="general">General question</option>
+                        <option value="order">Help with an order</option>
+                        <option value="partner">Become a print-shop partner</option>
+                        <option value="press">Press / partnerships</option>
+                    </select>
+
+                    <label for="contact-message">Message</label>
+                    <textarea id="contact-message" rows="5" required></textarea>
+
+                    <div class="registration-actions">
+                        <button type="submit">Send message</button>
+                    </div>
+                </form>
+
+                <div class="registration-summary" style="margin-top:1.5rem">
+                    <p><strong>Prefer email?</strong></p>
+                    <p>General: hello@teeminus.local</p>
+                    <p>Partners: partners@teeminus.local</p>
+                    <p>Support: support@teeminus.local</p>
+                </div>
+            </section>
+        </main>
+
+        <div class="footer">
+            <div class="footer-column"><h1>Our Materials</h1><p>Learn About our cotton</p><p>Learn About our hemp</p><p>Learn About our wool</p></div>
+            <div class="footer-column"><h1>Our Ethics</h1><p>Learn About our cotton</p><p>Learn About our hemp</p><p>Learn About our wool</p></div>
+            <div class="footer-column"><h1>Our Legal Stuff</h1><p>Learn About our cotton</p><p>Learn About our hemp</p><p>Learn About our wool</p></div>
+        </div>
+
+        <script>
+            document.getElementById('contact-form').addEventListener('submit', function (event) {
+                event.preventDefault();
+                const alertEl = document.getElementById('contact-alert');
+                alertEl.textContent = 'Thanks! Your message has been noted. (Wire this form to your inbox or CRM to receive it.)';
+                alertEl.className = 'account-alert success';
+                alertEl.hidden = false;
+                this.reset();
+            });
+        </script>
+        <script src="nav-auth.js"></script>
+    </body>
+</html>

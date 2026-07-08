@@ -25,6 +25,10 @@
 
       <div class="registration-summary" id="registration-summary"></div>
 
+      <div class="account-links" id="shop-onboarding-cta" hidden>
+        <a href="shop-onboarding.html" class="success-link alt">Next: add service area &amp; payout →</a>
+      </div>
+
       <div class="registration-actions">
         <a href="index.html" class="success-link">Back to Home</a>
         <a href="registration.html" class="success-link alt">Register Another</a>
@@ -83,6 +87,10 @@
       }
 
       summaryEl.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
+
+      if (account.role === 'print-shop') {
+        document.getElementById('shop-onboarding-cta').hidden = false;
+      }
     }
   </script>
   <script src="nav-auth.js"></script>

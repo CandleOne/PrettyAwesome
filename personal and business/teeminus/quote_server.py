@@ -9,7 +9,7 @@ import urllib.request
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 try:
     import stripe
@@ -45,8 +45,116 @@ CLOUDINARY_SECRET = os.environ.get("CLOUDINARY_API_SECRET", "")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 
+GEOCODER_PROVIDER = os.environ.get("GEOCODER_PROVIDER", "photon").strip().lower()
+GEOCODER_API_KEY = os.environ.get("GEOCODER_API_KEY", "").strip()
+
+_GEOCODE_CACHE: dict[str, dict] = {}
+
 if stripe and STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
+
+
+def _http_get_json(url: str, headers: dict | None = None) -> object:
+    req = urllib.request.Request(url, method="GET")
+    req.add_header("User-Agent", "Tee-Minus/1.0 (print-shop-routing)")
+    for key, value in (headers or {}).items():
+        req.add_header(key, value)
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode("utf-8", errors="replace"))
+
+
+def _geocode_opencage(query: str) -> dict:
+    url = (
+        "https://api.opencage.com/geocode/v1/json?"
+        + urlencode({"q": query, "key": GEOCODER_API_KEY, "limit": "1", "countrycode": "us"})
+    )
+    data = _http_get_json(url)
+    results = data.get("results") or []
+    if not results:
+        raise ValueError("no-results")
+    top = results[0]
+    geo = top.get("geometry") or {}
+    return {"lat": float(geo["lat"]), "lng": float(geo["lng"]), "formatted": top.get("formatted") or query}
+
+
+def _geocode_google(query: str) -> dict:
+    url = (
+        "https://maps.googleapis.com/maps/api/geocode/json?"
+        + urlencode({"address": query, "key": GEOCODER_API_KEY})
+    )
+    data = _http_get_json(url)
+    results = data.get("results") or []
+    if not results:
+        raise ValueError("no-results")
+    top = results[0]
+    loc = (top.get("geometry") or {}).get("location") or {}
+    return {"lat": float(loc["lat"]), "lng": float(loc["lng"]), "formatted": top.get("formatted_address") or query}
+
+
+def _geocode_mapbox(query: str) -> dict:
+    encoded_query = quote(query)
+    url = (
+        f"https://api.mapbox.com/geocoding/v5/mapbox.places/{encoded_query}.json?"
+        + urlencode({"access_token": GEOCODER_API_KEY, "limit": "1", "country": "us"})
+    )
+    data = _http_get_json(url)
+    features = data.get("features") or []
+    if not features:
+        raise ValueError("no-results")
+    top = features[0]
+    center = top.get("center") or [None, None]
+    return {"lat": float(center[1]), "lng": float(center[0]), "formatted": top.get("place_name") or query}
+
+
+def _geocode_nominatim(query: str) -> dict:
+    url = (
+        "https://nominatim.openstreetmap.org/search?"
+        + urlencode({"q": query, "format": "json", "limit": "1", "countrycodes": "us"})
+    )
+    data = _http_get_json(url)
+    if not data:
+        raise ValueError("no-results")
+    top = data[0]
+    return {"lat": float(top["lat"]), "lng": float(top["lon"]), "formatted": top.get("display_name") or query}
+
+
+def _geocode_photon(query: str) -> dict:
+    # Photon is an OpenStreetMap-based geocoder (Komoot). Keyless, OSM data.
+    url = "https://photon.komoot.io/api/?" + urlencode({"q": query, "limit": "1"})
+    data = _http_get_json(url)
+    features = data.get("features") or []
+    if not features:
+        raise ValueError("no-results")
+    top = features[0]
+    coords = (top.get("geometry") or {}).get("coordinates") or [None, None]
+    props = top.get("properties") or {}
+    parts = [props.get(key) for key in ("name", "city", "state", "country")]
+    formatted = ", ".join([part for part in parts if part]) or query
+    return {"lat": float(coords[1]), "lng": float(coords[0]), "formatted": formatted}
+
+
+def geocode_location(query: str) -> dict:
+    query = (query or "").strip()
+    if not query:
+        raise ValueError("empty-query")
+
+    cache_key = query.lower()
+    if cache_key in _GEOCODE_CACHE:
+        return _GEOCODE_CACHE[cache_key]
+
+    if GEOCODER_PROVIDER == "opencage" and GEOCODER_API_KEY:
+        result = _geocode_opencage(query)
+    elif GEOCODER_PROVIDER == "google" and GEOCODER_API_KEY:
+        result = _geocode_google(query)
+    elif GEOCODER_PROVIDER == "mapbox" and GEOCODER_API_KEY:
+        result = _geocode_mapbox(query)
+    elif GEOCODER_PROVIDER == "nominatim":
+        result = _geocode_nominatim(query)
+    else:
+        result = _geocode_photon(query)
+
+    _GEOCODE_CACHE[cache_key] = result
+    return result
 
 
 def cloudinary_upload(file_bytes: bytes, filename: str, folder: str) -> str:
@@ -393,6 +501,26 @@ class QuoteHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps({"ok": True, **payload}).encode("utf-8"))
 
     def do_POST(self) -> None:
+        if self.path == "/geocode":
+            body, err = self._read_json_body()
+            if err:
+                self._json_error(400, err)
+                return
+            query = (body.get("query") or body.get("location") or "").strip()
+            if not query:
+                self._json_error(400, "empty-query")
+                return
+            try:
+                result = geocode_location(query)
+            except ValueError as exc:
+                self._json_error(404, str(exc))
+                return
+            except Exception as exc:
+                self._json_error(502, str(exc))
+                return
+            self._json_ok(result)
+            return
+
         if self.path == "/payments/setup-intent":
             ready, err = payments_ready()
             if not ready:

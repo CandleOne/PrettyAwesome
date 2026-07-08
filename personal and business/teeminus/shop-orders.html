@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Queue | Tee-Minus</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .orders-page .order-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .orders-page .metric-card {
+      border: 0.15vw solid #000;
+      background: #fffef8;
+      padding: 0.8rem 1rem;
+      box-shadow: 4px 4px 0 #055034;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .orders-page .metric-card h2 { font-family: 'NimbusRoman', serif; font-size: 1.8rem; margin: 0; }
+    .orders-page .metric-card p { margin: 0.2rem 0 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #555; }
+    .orders-page .order-group { margin-top: 1.5rem; }
+    .orders-page .order-card {
+      border: 0.15vw solid #000;
+      background: #fffef8;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+      box-shadow: 5px 5px 0 #055034;
+    }
+    .orders-page .order-card.done { box-shadow: 5px 5px 0 #999; }
+    .orders-page .order-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+    .orders-page .order-card-head h3 { font-family: 'NimbusRoman', serif; font-size: 1.3rem; margin: 0; }
+    .orders-page .order-meta { font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; color: #333; line-height: 1.7; margin: 0.5rem 0; }
+    .orders-page .badge { font-family: 'Courier New', Courier, monospace; font-size: 0.72rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border: 1.5px solid #000; background: #fff; }
+    .orders-page .badge.green { background: #055034; color: antiquewhite; border-color: #055034; }
+    .orders-page .badge.warn { background: #fff3d6; border-color: #7a3c00; color: #7a3c00; }
+    .orders-page .order-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0.5rem 0; }
+    .orders-page .payout { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #055034; }
+    .orders-page .order-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0.8rem; }
+    .orders-page .order-actions button {
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      padding: 8px 16px;
+      border: 0.15vw solid #000;
+      background: #fff;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.8rem;
+    }
+    .orders-page .order-actions button.primary { background: #055034; color: antiquewhite; border-color: #055034; }
+    .orders-page .order-actions button.danger { border-color: #8b0000; color: #8b0000; }
+    .orders-page .order-actions button:hover { filter: brightness(1.1); }
+    .orders-page .empty { font-family: 'Courier New', Courier, monospace; color: #666; }
+  </style>
+</head>
+<body class="registration-page orders-page">
+  <div class="navbar">
+    <div class="nav-buttons">
+      <a href="index.html" class="nav-btn">Home</a>
+      <a href="shop.html" class="nav-btn">Shop</a>
+      <a href="about.html" class="nav-btn">About</a>
+      <a href="contact.html" class="nav-btn">Contact</a>
+      <a href="account.html" class="nav-btn" data-account-link>Account</a>
+      <a href="teeminus-order-form.html" class="lg-nav-btn">Get a Quote!</a>
+    </div>
+  </div>
+
+  <main class="registration-main">
+    <section class="registration-card">
+      <h1>Your Order Queue</h1>
+      <p>Orders routed to your shop by proximity. Accept to claim, or decline to send it to the next-nearest shop.</p>
+
+      <div id="orders-alert" class="account-alert" hidden></div>
+
+      <div id="not-print-shop" hidden>
+        <p class="field-note">This page is for print shop partners. Sign in with a print shop account, or <a href="registration.html">register a print shop</a>.</p>
+        <div class="account-links"><a href="account.html" class="success-link alt">Go to Account</a></div>
+      </div>
+
+      <div id="not-live" hidden>
+        <p class="field-note">Your shop isn't live yet. Finish <a href="shop-onboarding.html">onboarding</a> and get verified &amp; activated to start receiving orders.</p>
+      </div>
+
+      <div id="orders-body" hidden>
+        <div class="order-metrics" id="order-metrics"></div>
+
+        <div class="order-group">
+          <h2 class="account-subtitle">Incoming</h2>
+          <div id="incoming-list"></div>
+        </div>
+
+        <div class="order-group">
+          <h2 class="account-subtitle">In progress</h2>
+          <div id="active-list"></div>
+        </div>
+
+        <div class="order-group">
+          <h2 class="account-subtitle">Completed</h2>
+          <div id="completed-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-column"><h1>Our Materials</h1><p>Learn About our cotton</p><p>Learn About our hemp</p><p>Learn About our wool</p></div>
+    <div class="footer-column"><h1>Our Ethics</h1><p>Learn About our cotton</p><p>Learn About our hemp</p><p>Learn About our wool</p></div>
+    <div class="footer-column"><h1>Our Legal Stuff</h1><p>Learn About our cotton</p><p>Learn About our hemp</p><p>Learn About our wool</p></div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="routing.js"></script>
+  <script>
+    const notPrintShopEl = document.getElementById('not-print-shop');
+    const notLiveEl = document.getElementById('not-live');
+    const ordersBody = document.getElementById('orders-body');
+    const alertEl = document.getElementById('orders-alert');
+    const metricsEl = document.getElementById('order-metrics');
+    const incomingList = document.getElementById('incoming-list');
+    const activeList = document.getElementById('active-list');
+    const completedList = document.getElementById('completed-list');
+
+    function currentShop() {
+      return window.TMAuth.getCurrentAccount();
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[ch]));
+    }
+
+    function showAlert(message, tone) {
+      alertEl.textContent = message;
+      alertEl.className = `account-alert ${tone || 'info'}`;
+      alertEl.hidden = false;
+      window.clearTimeout(showAlert._t);
+      showAlert._t = window.setTimeout(() => { alertEl.hidden = true; }, 4000);
+    }
+
+    function money(value) {
+      return window.TMRouting.formatMoney(Number(value) || 0);
+    }
+
+    function statusLabel(status) {
+      return {
+        assigned: 'New — awaiting your response',
+        accepted: 'Accepted',
+        'in-production': 'In production',
+        fulfilled: 'Fulfilled',
+      }[status] || status;
+    }
+
+    function orderCard(order, kind) {
+      const payout = order.pricing ? order.pricing.shopPayout : null;
+      const distance = Number.isFinite(order.distanceMiles) ? window.TMRouting.formatMiles(order.distanceMiles) : '';
+      const methodLabel = order.deliveryMethod === 'shipping' ? 'Ship to customer' : 'Local pickup';
+
+      let actions = '';
+      if (kind === 'incoming') {
+        actions = `
+          <button class="primary" data-act="accept" data-id="${order.id}">Accept order</button>
+          <button class="danger" data-act="decline" data-id="${order.id}">Decline / re-route</button>`;
+      } else if (order.status === 'accepted') {
+        actions = `<button class="primary" data-act="produce" data-id="${order.id}">Start production</button>`;
+      } else if (order.status === 'in-production') {
+        actions = `<button class="primary" data-act="fulfill" data-id="${order.id}">Mark fulfilled</button>`;
+      }
+
+      return `
+        <article class="order-card ${kind === 'completed' ? 'done' : ''}">
+          <div class="order-card-head">
+            <h3>${escapeHtml(order.projectName || 'Custom order')}</h3>
+            <span class="payout">${payout != null ? 'Payout ' + escapeHtml(money(payout)) : ''}</span>
+          </div>
+          <div class="order-badges">
+            <span class="badge ${order.status === 'fulfilled' ? 'green' : ''}">${escapeHtml(statusLabel(order.status))}</span>
+            ${order.rushOrder ? '<span class="badge warn">Rush</span>' : ''}
+            ${order.sameDayCapable ? '<span class="badge green">Same-day</span>' : ''}
+          </div>
+          <p class="order-meta">
+            Customer: ${escapeHtml(order.customerName || '—')} · ${escapeHtml(order.customerEmail || '')}<br>
+            Pieces: ${escapeHtml(order.quantity || 0)} · Color: ${escapeHtml(order.shirtColor || '—')} · Placement: ${escapeHtml(order.placement || '—')}<br>
+            Fulfillment: ${escapeHtml(methodLabel)}${distance ? ' · ' + escapeHtml(distance) : ''}<br>
+            ${order.deliveryMethod === 'shipping' && order.shippingAddress ? 'Ship to: ' + escapeHtml(order.shippingAddress) + '<br>' : ''}
+            ${order.reference ? 'Quote ref: ' + escapeHtml(order.reference) : ''}
+          </p>
+          ${actions ? `<div class="order-actions">${actions}</div>` : ''}
+        </article>`;
+    }
+
+    function render() {
+      const shop = currentShop();
+      if (!shop) return;
+      const orders = window.TMAuth.getOrdersForShop(shop.id);
+
+      const incoming = orders.filter((o) => o.status === 'assigned');
+      const active = orders.filter((o) => o.status === 'accepted' || o.status === 'in-production');
+      const completed = orders.filter((o) => o.status === 'fulfilled');
+
+      const pipeline = active.reduce((sum, o) => sum + (o.pricing ? o.pricing.shopPayout : 0), 0);
+      const earned = completed.reduce((sum, o) => sum + (o.pricing ? o.pricing.shopPayout : 0), 0);
+
+      metricsEl.innerHTML = [
+        { v: incoming.length, l: 'Incoming' },
+        { v: active.length, l: 'In progress' },
+        { v: completed.length, l: 'Fulfilled' },
+        { v: money(pipeline), l: 'Payout pipeline' },
+        { v: money(earned), l: 'Earned (fulfilled)' },
+      ].map((m) => `<div class="metric-card"><h2>${escapeHtml(m.v)}</h2><p>${escapeHtml(m.l)}</p></div>`).join('');
+
+      incomingList.innerHTML = incoming.length
+        ? incoming.map((o) => orderCard(o, 'incoming')).join('')
+        : '<p class="empty">No new orders right now.</p>';
+      activeList.innerHTML = active.length
+        ? active.map((o) => orderCard(o, 'active')).join('')
+        : '<p class="empty">Nothing in production.</p>';
+      completedList.innerHTML = completed.length
+        ? completed.map((o) => orderCard(o, 'completed')).join('')
+        : '<p class="empty">No fulfilled orders yet.</p>';
+    }
+
+    async function reassignOrder(order) {
+      const declined = Array.from(new Set([...(order.declinedShopIds || []), order.assignedShopId].filter(Boolean)));
+      const ranked = await window.TMRouting.rankShops({
+        customerLocation: order.customerLocation || null,
+        quantity: order.quantity,
+        rush: order.rushOrder,
+        sameDayRequested: false,
+        fulfillmentMethod: order.deliveryMethod === 'shipping' ? 'ship-it-to-me' : 'pickup',
+      });
+      const next = ranked.results.find((r) => r.eligible && !declined.includes(r.shop.id));
+
+      if (next) {
+        window.TMAuth.updateNetworkOrder(order.id, {
+          assignedShopId: next.shop.id,
+          assignedShopName: next.shop.accountName || next.shop.name,
+          distanceMiles: Number.isFinite(next.distanceMiles) ? Math.round(next.distanceMiles * 10) / 10 : null,
+          sameDayCapable: next.sameDayCapable,
+          status: 'assigned',
+          declinedShopIds: declined,
+        });
+        showAlert('Order re-routed to the next-nearest shop.', 'info');
+      } else {
+        window.TMAuth.updateNetworkOrder(order.id, {
+          assignedShopId: '',
+          assignedShopName: '',
+          status: 'unassigned',
+          declinedShopIds: declined,
+        });
+        showAlert('No other shop can take it — sent to the manual pool.', 'info');
+      }
+    }
+
+    document.addEventListener('click', async (event) => {
+      const btn = event.target.closest('button[data-act]');
+      if (!btn) return;
+      const shop = currentShop();
+      if (!shop) return;
+
+      const id = btn.getAttribute('data-id');
+      const act = btn.getAttribute('data-act');
+      const order = window.TMAuth.readNetworkOrders().find((o) => o.id === id);
+      if (!order || order.assignedShopId !== shop.id) { render(); return; }
+
+      if (act === 'accept') {
+        window.TMAuth.updateNetworkOrder(id, { status: 'accepted' });
+        showAlert('Order accepted.', 'success');
+      } else if (act === 'produce') {
+        window.TMAuth.updateNetworkOrder(id, { status: 'in-production' });
+      } else if (act === 'fulfill') {
+        window.TMAuth.updateNetworkOrder(id, { status: 'fulfilled' });
+        showAlert('Marked fulfilled.', 'success');
+      } else if (act === 'decline') {
+        btn.disabled = true;
+        await reassignOrder(order);
+      }
+      render();
+    });
+
+    (function init() {
+      const shop = currentShop();
+      if (!shop || shop.role !== 'print-shop') {
+        notPrintShopEl.hidden = false;
+        return;
+      }
+      if (!(shop.printShop && shop.printShop.activatedAt)) {
+        notLiveEl.hidden = false;
+        return;
+      }
+      ordersBody.hidden = false;
+      render();
+    })();
+  </script>
+  <script src="nav-auth.js"></script>
+</body>
+</html>
