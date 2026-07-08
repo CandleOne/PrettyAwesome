@@ -412,16 +412,31 @@
       }).join('');
     }
 
+    function orderFulfillable(r, ctx) {
+      return r.meetsMinimum && r.methodOffered && (!ctx.sameDayRequested || r.sameDayCapable);
+    }
+
+    function fulfillReasons(r, ctx) {
+      const out = [];
+      if (!r.meetsMinimum) out.push('Below minimum order quantity');
+      if (!r.methodOffered) out.push('Fulfillment method not offered');
+      if (ctx.sameDayRequested && !r.sameDayCapable) out.push('Cannot meet same-day at this quantity');
+      return out;
+    }
+
     function renderRankedResults(results, ctx, matchingOnly) {
       const radiusMiles = Number.isFinite(ctx.searchRadiusMiles) ? ctx.searchRadiusMiles : Infinity;
+      // Distance is governed purely by the customer's search radius.
       const withinRadius = results.filter((r) => r.distanceMiles <= radiusMiles);
-      const eligible = withinRadius.filter((r) => r.eligible);
-      const shown = matchingOnly ? eligible : withinRadius;
+      // "Matching" = can actually fulfill (quantity/method/same-day). A shop's own
+      // service radius is informational here, not a hard distance cutoff.
+      const fulfillable = withinRadius.filter((r) => orderFulfillable(r, ctx));
+      const shown = matchingOnly ? fulfillable : withinRadius;
 
       const radiusLabel = Number.isFinite(radiusMiles)
         ? ` within ${escapeHtml(searchRadiusInput.value)} ${escapeHtml(radiusUnitSelect.value)}`
         : '';
-      resultsTitle.textContent = `Ranked for you — ${eligible.length} of ${withinRadius.length} shops${radiusLabel} can take this order`;
+      resultsTitle.textContent = `${withinRadius.length} shop${withinRadius.length === 1 ? '' : 's'}${radiusLabel} — ${fulfillable.length} can fulfill this order`;
 
       if (!results.length) {
         listEl.innerHTML = '<p class="field-note">No print shops are live yet in the network.</p>';
@@ -431,34 +446,41 @@
         listEl.innerHTML = `<p class="field-note">No shops within${radiusLabel || ' range'}. Increase your search radius or try a nearby larger city.</p>`;
         return;
       }
-      if (matchingOnly && !eligible.length) {
-        listEl.innerHTML = '<p class="field-note">Shops are nearby but none can fulfill this exact order. Widen the radius, change fulfillment, or uncheck “Only matching shops”.</p>';
+      if (matchingOnly && !fulfillable.length) {
+        listEl.innerHTML = '<p class="field-note">Shops are within range but none can fulfill this exact order. Widen the radius, change fulfillment, or uncheck “Only matching shops”.</p>';
         return;
       }
+
+      const firstFulfillableIdx = shown.findIndex((x) => orderFulfillable(x, ctx));
 
       listEl.innerHTML = shown.map((r, index) => {
         const account = r.shop;
         const d = account.printShop || {};
         const pricing = window.TMRouting.estimatePricing({ quantity: ctx.quantity, rush: false });
         const distanceLabel = window.TMRouting.formatMiles(r.distanceMiles);
-        const isClosestEligible = r.eligible && index === shown.findIndex((x) => x.eligible);
+        const canFulfill = orderFulfillable(r, ctx);
+        const isClosest = canFulfill && index === firstFulfillableIdx;
+        const reasons = fulfillReasons(r, ctx);
+        const outsideServiceArea = r.withinServiceArea === false;
         return `
-          <article class="shop-card ${r.eligible ? '' : 'ineligible'}">
+          <article class="shop-card ${canFulfill ? '' : 'ineligible'}">
             <div class="shop-card-head">
               <h3>${escapeHtml(shopName(account))}</h3>
               <span class="shop-distance">${escapeHtml(distanceLabel)}</span>
             </div>
             <div class="shop-badges">
-              ${isClosestEligible ? '<span class="badge green">Closest available</span>' : ''}
+              ${isClosest ? '<span class="badge green">Closest available</span>' : ''}
               ${r.sameDayCapable ? '<span class="badge green">Same-day</span>' : ''}
-              ${r.eligible ? '' : '<span class="badge warn">Not available for this order</span>'}
+              ${outsideServiceArea ? '<span class="badge warn">Beyond local pickup radius</span>' : ''}
+              ${canFulfill ? '' : '<span class="badge warn">Cannot fulfill this order</span>'}
             </div>
             <p class="shop-meta">
               Location: ${escapeHtml(d.location || 'Not listed')}<br>
+              Service radius: ${d.serviceRadiusMiles ? escapeHtml(d.serviceRadiusMiles) + ' mi' : 'Nationwide / not set'}<br>
               Minimum order: ${escapeHtml(d.minimumOrderQuantity || 0)} pieces<br>
               Fulfillment: ${escapeHtml(methodsLabel(d))}
             </p>
-            ${r.reasons.length ? `<p class="reasons">${escapeHtml(r.reasons.join(' · '))}</p>` : ''}
+            ${reasons.length ? `<p class="reasons">${escapeHtml(reasons.join(' · '))}</p>` : ''}
             <div class="shop-card-actions">
               <span class="shop-est">Est. from ${escapeHtml(window.TMRouting.formatMoney(pricing.subtotal))} (${escapeHtml(ctx.quantity)} pcs)</span>
               <a href="teeminus-order-form.html" class="success-link alt">Request a quote</a>
