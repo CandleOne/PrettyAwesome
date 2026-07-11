@@ -12,10 +12,6 @@
   <!-- Fabric.js for 2D editing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 
-  <!-- Three.js + OrbitControls (global) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
   <style>
     /* ===== CREATOR STYLES ===== */
     .creator {
@@ -105,6 +101,7 @@
     .creator .tf-render-stage { display: flex; justify-content: center; align-items: center; flex: 1; }
     .creator .tf-render-stage canvas { max-width: 100%; height: auto; }
     .creator .tf-render-note { margin: 0; font-size: 11px; color: var(--text-muted); text-align: center; }
+    .creator #tf-download { justify-content: center; }
     @media (max-width: 900px) {
       .creator .tf-workspace { flex-direction: column; }
       .creator .tf-render-panel { flex-basis: auto; max-width: none; }
@@ -654,6 +651,9 @@
               <canvas id="tf-render" width="360" height="430"></canvas>
             </div>
             <p class="tf-render-note">Live photo mockup — recolors to your garment and shows your design on the chest.</p>
+            <button type="button" class="tf-tool tf-primary" id="tf-download" title="Download this realistic mockup as a PNG">
+              <i class="ti ti-camera" aria-hidden="true"></i><span>Download mockup</span>
+            </button>
           </div>
 
           <!-- Canvas stage (interactive editor) -->
@@ -1031,6 +1031,22 @@
         renderRealistic();
       }
 
+      function downloadRealistic() {
+        if (!realCanvas) return;
+        renderRealistic();
+        let url;
+        try { url = realCanvas.toDataURL('image/png'); }
+        catch (e) { showBanner('The mockup image could not be exported for download.', 'warn'); return; }
+        const base = ($('tf-design-name') && $('tf-design-name').value.trim()) || 'threadforge-mockup';
+        const name = (base.replace(/[^a-z0-9-_]+/gi, '-').replace(/^-+|-+$/g, '') || 'threadforge-mockup') + '-' + realSide;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
       function initRealistic() {
         realCanvas = $('tf-render');
         if (!realCanvas) return;
@@ -1044,6 +1060,8 @@
         document.querySelectorAll('.tf-side').forEach(function (b) {
           b.addEventListener('click', function () { setPreviewSide(b.getAttribute('data-side')); });
         });
+        const dl = $('tf-download');
+        if (dl) dl.addEventListener('click', downloadRealistic);
       }
 
       function showBanner(message, tone) {
