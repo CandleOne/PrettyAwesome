@@ -88,6 +88,28 @@
     .creator .tf-stage canvas { max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 18px rgba(0, 0, 0, .08); }
     .creator .tf-hint { margin: -.4rem 0 0; font-size: 12px; color: var(--text-muted); text-align: center; }
 
+    /* Realistic preview + editor side by side */
+    .creator .tf-workspace { display: flex; gap: 1rem; align-items: stretch; }
+    .creator .tf-workspace .tf-stage { flex: 1 1 auto; min-width: 0; align-items: flex-start; }
+    .creator .tf-render-panel {
+      flex: 0 0 340px; max-width: 340px; display: flex; flex-direction: column; gap: .6rem;
+      padding: 1rem; background: var(--surface-1);
+      border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    .creator .tf-render-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .creator .tf-render-head > span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary); }
+    .creator .tf-side-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; }
+    .creator .tf-side { padding: 4px 10px; font-size: 12px; font-family: inherit; background: #fff; border: none; cursor: pointer; color: var(--text-secondary); }
+    .creator .tf-side + .tf-side { border-left: 1px solid var(--border-strong); }
+    .creator .tf-side.active { background: var(--green); color: #fff; }
+    .creator .tf-render-stage { display: flex; justify-content: center; align-items: center; flex: 1; }
+    .creator .tf-render-stage canvas { max-width: 100%; height: auto; }
+    .creator .tf-render-note { margin: 0; font-size: 11px; color: var(--text-muted); text-align: center; }
+    @media (max-width: 900px) {
+      .creator .tf-workspace { flex-direction: column; }
+      .creator .tf-render-panel { flex-basis: auto; max-width: none; }
+    }
+
     .creator .tf-finish { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
     .creator .tf-name { flex: 1; min-width: 220px; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 1px solid var(--border-strong); border-radius: 6px; }
     .creator .tf-banner { padding: .7rem .9rem; border-radius: 6px; font-size: .9rem; }
@@ -617,9 +639,27 @@
           </button>
         </div>
 
-        <!-- Canvas stage -->
-        <div class="tf-stage">
-          <canvas id="tf-canvas" width="700" height="700"></canvas>
+        <!-- Preview + editor workspace -->
+        <div class="tf-workspace">
+          <!-- Realistic photo render (recolored + design composited) -->
+          <div class="tf-render-panel">
+            <div class="tf-render-head">
+              <span>Realistic preview</span>
+              <div class="tf-side-toggle" role="group" aria-label="Preview side">
+                <button type="button" class="tf-side active" data-side="front">Front</button>
+                <button type="button" class="tf-side" data-side="back">Back</button>
+              </div>
+            </div>
+            <div class="tf-render-stage">
+              <canvas id="tf-render" width="360" height="430"></canvas>
+            </div>
+            <p class="tf-render-note">Live photo mockup — recolors to your garment and shows your design on the chest.</p>
+          </div>
+
+          <!-- Canvas stage (interactive editor) -->
+          <div class="tf-stage">
+            <canvas id="tf-canvas" width="700" height="700"></canvas>
+          </div>
         </div>
 
         <p class="tf-hint">Drag to move · corner handles to scale &amp; rotate · double-click text to edit · Delete key removes the selected layer. <strong>Snap</strong> aligns layers to the grid and center guides.</p>
@@ -682,12 +722,12 @@
       const SNAP = 8;    // snap threshold in px
 
       const TEMPLATES = [
-        { id: 'boxy-forest', name: 'Boxy · Forest', url: 'assets/shirticons/boxy/cotton/BoxyCottonforest.png' },
-        { id: 'boxy-cream', name: 'Boxy · Cream', url: 'assets/shirticons/boxy/cotton/BoxyCottonCanvas.png' },
-        { id: 'boxy-black', name: 'Boxy · Black', url: 'assets/shirticons/boxy/cotton/BoxyCottonnight.png' },
-        { id: 'casual-forest', name: 'Casual · Forest', url: 'assets/shirticons/casual/cotton/CasualCottonForest.png' },
-        { id: 'casual-cream', name: 'Casual · Cream', url: 'assets/shirticons/casual/cotton/CasualCottonCanvas.png' },
-        { id: 'casual-black', name: 'Casual · Black', url: 'assets/shirticons/casual/cotton/CasualCottonNight.png' },
+        { id: 'boxy-forest', name: 'Boxy · Forest', color: '#0b3d2b', url: 'assets/shirticons/boxy/cotton/BoxyCottonforest.png' },
+        { id: 'boxy-cream', name: 'Boxy · Cream', color: '#efe6cd', url: 'assets/shirticons/boxy/cotton/BoxyCottonCanvas.png' },
+        { id: 'boxy-black', name: 'Boxy · Black', color: '#1e1e1e', url: 'assets/shirticons/boxy/cotton/BoxyCottonnight.png' },
+        { id: 'casual-forest', name: 'Casual · Forest', color: '#0b3d2b', url: 'assets/shirticons/casual/cotton/CasualCottonForest.png' },
+        { id: 'casual-cream', name: 'Casual · Cream', color: '#efe6cd', url: 'assets/shirticons/casual/cotton/CasualCottonCanvas.png' },
+        { id: 'casual-black', name: 'Casual · Black', color: '#1e1e1e', url: 'assets/shirticons/casual/cotton/CasualCottonNight.png' },
       ];
 
       let canvas = null;
@@ -696,6 +736,18 @@
       let snapEnabled = true;   // grid + alignment snapping
       let vGuide = null;        // active vertical alignment guide (x), or null
       let hGuide = null;        // active horizontal alignment guide (y), or null
+
+      /* Realistic photo preview state */
+      const SHIRT_SRC = { front: 'tshirtfront.png', back: 'tshirtback.png' };
+      // Chest print area as a fraction of the drawn shirt rectangle (square).
+      const PRINT = { x: 0.325, y: 0.265, size: 0.35 };
+      const shirtImgs = {};     // { front: Image, back: Image }
+      let realCanvas = null, realCtx = null;
+      let realSide = 'front';
+      let designImg = null;     // cached transparent PNG of the design layers
+      let shirtRect = null;     // where the shirt is drawn on the preview canvas
+      let busyExport = false;   // suppress grid overlay while exporting the design
+      let realRaf = 0;
 
       function $(id) { return document.getElementById(id); }
 
@@ -719,6 +771,7 @@
           canvas.add(img);
           canvas.sendToBack(img);
           canvas.renderAll();
+          renderRealistic();
         }, { crossOrigin: 'anonymous' });
       }
 
@@ -852,6 +905,7 @@
 
       // Drawn on top of every frame: faint grid (when snapping on) + active guides.
       function drawOverlay() {
+        if (busyExport) return; // keep grid/guides out of the exported design
         const ctx = canvas.getContext();
         if (!ctx) return;
         ctx.save();
@@ -882,6 +936,114 @@
         }
         clearGuides();
         canvas.requestRenderAll();
+      }
+
+      /* ===== Realistic photo preview ===== */
+      // Recolor a near-white shirt photo to the garment color (multiply keeps the
+      // fabric folds/shadows), masked back to the shirt silhouette via its alpha.
+      function tintShirt(img, w, h, hex) {
+        const oc = document.createElement('canvas');
+        oc.width = w; oc.height = h;
+        const o = oc.getContext('2d');
+        o.drawImage(img, 0, 0, w, h);
+        o.globalCompositeOperation = 'multiply';
+        o.fillStyle = hex;
+        o.fillRect(0, 0, w, h);
+        o.globalCompositeOperation = 'destination-in';
+        o.drawImage(img, 0, 0, w, h);
+        o.globalCompositeOperation = 'source-over';
+        return oc;
+      }
+
+      // 'contain' fit of the shirt image inside the preview canvas.
+      function fitRect(img, cw, ch) {
+        const ar = img.naturalWidth / img.naturalHeight;
+        let w = cw, hh = cw / ar;
+        if (hh > ch) { hh = ch; w = ch * ar; }
+        return { x: (cw - w) / 2, y: (ch - hh) / 2, w: w, h: hh };
+      }
+
+      // Export just the design layers (no garment base, no grid) as a transparent PNG.
+      function exportDesignPng() {
+        if (!canvas) return null;
+        busyExport = true;
+        const prevBg = canvas.backgroundColor;
+        if (baseImage) baseImage.visible = false;
+        canvas.backgroundColor = '';
+        canvas.renderAll();
+        let url = null;
+        try { url = canvas.toDataURL({ format: 'png', multiplier: 1 }); } catch (e) { url = null; }
+        canvas.backgroundColor = prevBg;
+        if (baseImage) baseImage.visible = true;
+        busyExport = false;
+        canvas.renderAll();
+        return url;
+      }
+
+      function renderRealistic() {
+        if (!realCtx) return;
+        const img = shirtImgs[realSide];
+        realCtx.clearRect(0, 0, realCanvas.width, realCanvas.height);
+        if (!img || !img.complete || !img.naturalWidth) return;
+        shirtRect = fitRect(img, realCanvas.width, realCanvas.height);
+        const tinted = tintShirt(img, Math.round(shirtRect.w), Math.round(shirtRect.h), currentTemplate.color || '#ffffff');
+        realCtx.drawImage(tinted, shirtRect.x, shirtRect.y);
+        drawDesignOnShirt();
+      }
+
+      function drawDesignOnShirt() {
+        if (realSide !== 'front' || !shirtRect) return;
+        if (!designImg || !designImg.complete || !designImg.naturalWidth) return;
+        const side = PRINT.size * shirtRect.w;
+        const px = shirtRect.x + PRINT.x * shirtRect.w;
+        const py = shirtRect.y + PRINT.y * shirtRect.h;
+        realCtx.save();
+        realCtx.globalAlpha = 0.96;
+        realCtx.beginPath();
+        realCtx.rect(px, py, side, side);
+        realCtx.clip();
+        // The design canvas is square (CANVAS_SIZE); map it into the square print area.
+        realCtx.drawImage(designImg, px, py, side, side);
+        realCtx.restore();
+      }
+
+      // Refresh the cached design image, then repaint the preview.
+      function updateDesignPreview() {
+        const url = exportDesignPng();
+        if (!url) { renderRealistic(); return; }
+        if (!designImg) designImg = new Image();
+        designImg.onload = function () { renderRealistic(); };
+        designImg.src = url;
+        renderRealistic();
+      }
+
+      // rAF-throttled design refresh (called on rapid editor events like dragging).
+      function scheduleDesignPreview() {
+        if (realRaf) return;
+        realRaf = requestAnimationFrame(function () { realRaf = 0; updateDesignPreview(); });
+      }
+
+      function setPreviewSide(side) {
+        realSide = side === 'back' ? 'back' : 'front';
+        document.querySelectorAll('.tf-side').forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-side') === realSide);
+        });
+        renderRealistic();
+      }
+
+      function initRealistic() {
+        realCanvas = $('tf-render');
+        if (!realCanvas) return;
+        realCtx = realCanvas.getContext('2d');
+        ['front', 'back'].forEach(function (side) {
+          const im = new Image();
+          im.onload = function () { renderRealistic(); };
+          im.src = SHIRT_SRC[side];
+          shirtImgs[side] = im;
+        });
+        document.querySelectorAll('.tf-side').forEach(function (b) {
+          b.addEventListener('click', function () { setPreviewSide(b.getAttribute('data-side')); });
+        });
       }
 
       function showBanner(message, tone) {
@@ -959,6 +1121,15 @@
         canvas.on('mouse:up', clearGuides);
         canvas.on('object:modified', clearGuides);
         canvas.on('after:render', drawOverlay);
+        // Keep the realistic preview in sync with the design.
+        canvas.on('object:added', scheduleDesignPreview);
+        canvas.on('object:removed', scheduleDesignPreview);
+        canvas.on('object:modified', scheduleDesignPreview);
+        canvas.on('object:moving', scheduleDesignPreview);
+        canvas.on('object:scaling', scheduleDesignPreview);
+        canvas.on('object:rotating', scheduleDesignPreview);
+        canvas.on('text:changed', scheduleDesignPreview);
+        initRealistic();
         renderTemplatePicker();
         loadTemplate(currentTemplate);
         wire();
