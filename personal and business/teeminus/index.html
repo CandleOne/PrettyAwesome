@@ -88,18 +88,28 @@
     .creator .tf-workspace { display: flex; gap: 1rem; align-items: stretch; }
     .creator .tf-workspace .tf-stage { flex: 1 1 auto; min-width: 0; align-items: flex-start; }
     .creator .tf-render-panel {
-      flex: 0 0 340px; max-width: 340px; display: flex; flex-direction: column; gap: .6rem;
+      flex: 0 0 460px; max-width: 460px; display: flex; flex-direction: column; gap: .6rem;
       padding: 1rem; background: var(--surface-1);
       border: 1px solid var(--border); border-radius: var(--radius);
     }
     .creator .tf-render-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
     .creator .tf-render-head > span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary); }
+    .creator .tf-render-head-tools { display: inline-flex; align-items: center; gap: .5rem; }
+    .creator .tf-zoom-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 26px; padding: 0; background: #fff; border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer; color: var(--text-secondary); }
+    .creator .tf-zoom-btn i { font-size: 16px; }
+    .creator .tf-zoom-btn.active { background: var(--green); color: #fff; border-color: var(--green); }
     .creator .tf-side-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; }
     .creator .tf-side { padding: 4px 10px; font-size: 12px; font-family: inherit; background: #fff; border: none; cursor: pointer; color: var(--text-secondary); }
     .creator .tf-side + .tf-side { border-left: 1px solid var(--border-strong); }
     .creator .tf-side.active { background: var(--green); color: #fff; }
-    .creator .tf-render-stage { display: flex; justify-content: center; align-items: center; flex: 1; }
-    .creator .tf-render-stage canvas { max-width: 100%; height: auto; }
+    .creator .tf-render-stage { position: relative; display: flex; justify-content: center; align-items: center; flex: 1; }
+    .creator .tf-render-stage canvas#tf-render { max-width: 100%; height: auto; }
+    .creator .tf-render-stage.zoom { cursor: none; }
+    .creator .tf-lens {
+      position: absolute; pointer-events: none; border-radius: 50%;
+      border: 2px solid var(--green); box-shadow: 0 4px 14px rgba(0,0,0,.25);
+      background: #fff; width: 200px; height: 200px; z-index: 5;
+    }
     .creator .tf-render-note { margin: 0; font-size: 11px; color: var(--text-muted); text-align: center; }
     .creator #tf-download { justify-content: center; }
     @media (max-width: 900px) {
@@ -647,13 +657,19 @@
           <div class="tf-render-panel">
             <div class="tf-render-head">
               <span>Realistic preview</span>
-              <div class="tf-side-toggle" role="group" aria-label="Preview side">
-                <button type="button" class="tf-side active" data-side="front">Front</button>
-                <button type="button" class="tf-side" data-side="back">Back</button>
+              <div class="tf-render-head-tools">
+                <button type="button" class="tf-zoom-btn" id="tf-zoom" title="Magnifier — hover the preview to zoom" aria-pressed="false">
+                  <i class="ti ti-zoom-in" aria-hidden="true"></i>
+                </button>
+                <div class="tf-side-toggle" role="group" aria-label="Preview side">
+                  <button type="button" class="tf-side active" data-side="front">Front</button>
+                  <button type="button" class="tf-side" data-side="back">Back</button>
+                </div>
               </div>
             </div>
             <div class="tf-render-stage">
-              <canvas id="tf-render" width="360" height="430"></canvas>
+              <canvas id="tf-render" width="1400" height="1638"></canvas>
+              <canvas id="tf-lens" class="tf-lens" width="200" height="200" hidden></canvas>
             </div>
             <p class="tf-render-note">Live photo mockup — recolors to your garment and shows your design on the chest.</p>
             <button type="button" class="tf-tool tf-primary" id="tf-download" title="Download this realistic mockup as a PNG">
@@ -755,6 +771,11 @@
       let shirtRect = null;     // where the shirt is drawn on the preview canvas
       let busyExport = false;   // suppress grid overlay while exporting the design
       let realRaf = 0;
+      // Realistic-render caches + magnifier state.
+      let tintedShirt = null, tintedKey = '';
+      let stageEl = null, lensCanvas = null, lensCtx = null;
+      let zoomOn = false, lastLens = null;
+      const LENS_SIZE = 200, LENS_ZOOM = 2.6;
 
       function $(id) { return document.getElementById(id); }
 
@@ -988,9 +1009,9 @@
         canvas.backgroundColor = '';
         canvas.renderAll();
         let url = null;
-        // Export only the chest print zone so positions map 1:1 onto the shirt.
+        // Export the chest print zone at 2x so it stays sharp on the hi-res preview.
         try {
-          url = canvas.toDataURL({ format: 'png', multiplier: 1, left: EPRINT.x, top: EPRINT.y, width: EPRINT.w, height: EPRINT.h });
+          url = canvas.toDataURL({ format: 'png', multiplier: 2, left: EPRINT.x, top: EPRINT.y, width: EPRINT.w, height: EPRINT.h });
         } catch (e) { url = null; }
         canvas.backgroundColor = prevBg;
         if (baseImage) baseImage.visible = true;
@@ -999,15 +1020,28 @@
         return url;
       }
 
+      // Tint once per side+color+size; cached so design moves don't re-tint.
+      function getTintedShirt() {
+        const img = shirtImgs[realSide];
+        if (!img || !img.complete || !img.naturalWidth) return null;
+        shirtRect = fitRect(img, realCanvas.width, realCanvas.height);
+        const w = Math.round(shirtRect.w), h = Math.round(shirtRect.h);
+        const key = realSide + '|' + (currentTemplate.color || '') + '|' + w + 'x' + h;
+        if (tintedKey !== key || !tintedShirt) {
+          tintedShirt = tintShirt(img, w, h, currentTemplate.color || '#ffffff');
+          tintedKey = key;
+        }
+        return tintedShirt;
+      }
+
       function renderRealistic() {
         if (!realCtx) return;
-        const img = shirtImgs[realSide];
         realCtx.clearRect(0, 0, realCanvas.width, realCanvas.height);
-        if (!img || !img.complete || !img.naturalWidth) return;
-        shirtRect = fitRect(img, realCanvas.width, realCanvas.height);
-        const tinted = tintShirt(img, Math.round(shirtRect.w), Math.round(shirtRect.h), currentTemplate.color || '#ffffff');
+        const tinted = getTintedShirt();
+        if (!tinted) return;
         realCtx.drawImage(tinted, shirtRect.x, shirtRect.y);
         drawDesignOnShirt();
+        updateLens();
       }
 
       function drawDesignOnShirt() {
@@ -1027,14 +1061,15 @@
         realCtx.restore();
       }
 
-      // Refresh the cached design image, then repaint the preview.
+      // Refresh the cached design image, then repaint. Double-buffered: the new
+      // design image is swapped in only once decoded, so moving art never blanks
+      // out (no flicker).
       function updateDesignPreview() {
         const url = exportDesignPng();
-        if (!url) { renderRealistic(); return; }
-        if (!designImg) designImg = new Image();
-        designImg.onload = function () { renderRealistic(); };
-        designImg.src = url;
-        renderRealistic();
+        if (!url) { designImg = null; renderRealistic(); return; }
+        const next = new Image();
+        next.onload = function () { designImg = next; renderRealistic(); };
+        next.src = url;
       }
 
       // rAF-throttled design refresh (called on rapid editor events like dragging).
@@ -1067,13 +1102,59 @@
         a.remove();
       }
 
+      /* ===== Magnifier (hover lens) ===== */
+      function toggleZoom() {
+        zoomOn = !zoomOn;
+        const btn = $('tf-zoom');
+        if (btn) { btn.classList.toggle('active', zoomOn); btn.setAttribute('aria-pressed', zoomOn ? 'true' : 'false'); }
+        if (stageEl) stageEl.classList.toggle('zoom', zoomOn);
+        if (!zoomOn) hideLens();
+      }
+
+      function hideLens() {
+        lastLens = null;
+        if (lensCanvas) lensCanvas.hidden = true;
+      }
+
+      function onLensMove(e) {
+        if (!zoomOn || !lensCanvas || !realCanvas) return;
+        const cRect = realCanvas.getBoundingClientRect();
+        const x = e.clientX - cRect.left, y = e.clientY - cRect.top;
+        if (x < 0 || y < 0 || x > cRect.width || y > cRect.height) { hideLens(); return; }
+        lastLens = { x: x, y: y, cRect: cRect };
+        drawLens();
+      }
+
+      function drawLens() {
+        if (!zoomOn || !lastLens || !lensCtx || !stageEl) return;
+        const x = lastLens.x, y = lastLens.y, cRect = lastLens.cRect;
+        const sRect = stageEl.getBoundingClientRect();
+        lensCanvas.style.left = (cRect.left - sRect.left + x - LENS_SIZE / 2) + 'px';
+        lensCanvas.style.top = (cRect.top - sRect.top + y - LENS_SIZE / 2) + 'px';
+        lensCanvas.hidden = false;
+        const sx = realCanvas.width / cRect.width;   // display px -> backing px
+        const bx = x * sx, by = y * sx;
+        const srcSize = (LENS_SIZE / LENS_ZOOM) * sx;
+        lensCtx.clearRect(0, 0, LENS_SIZE, LENS_SIZE);
+        lensCtx.fillStyle = '#ffffff';
+        lensCtx.fillRect(0, 0, LENS_SIZE, LENS_SIZE);
+        lensCtx.drawImage(realCanvas, bx - srcSize / 2, by - srcSize / 2, srcSize, srcSize, 0, 0, LENS_SIZE, LENS_SIZE);
+      }
+
+      function updateLens() {
+        if (zoomOn && lastLens) drawLens();
+      }
+
       function initRealistic() {
         realCanvas = $('tf-render');
         if (!realCanvas) return;
         realCtx = realCanvas.getContext('2d');
+        stageEl = realCanvas.closest('.tf-render-stage');
+        lensCanvas = $('tf-lens');
+        if (lensCanvas) lensCtx = lensCanvas.getContext('2d');
         ['front', 'back'].forEach(function (side) {
           const im = new Image();
-          im.onload = function () { renderRealistic(); };
+          im.onload = function () { tintedKey = ''; renderRealistic(); };
           im.src = SHIRT_SRC[side];
           shirtImgs[side] = im;
         });
@@ -1082,6 +1163,10 @@
         });
         const dl = $('tf-download');
         if (dl) dl.addEventListener('click', downloadRealistic);
+        const zb = $('tf-zoom');
+        if (zb) zb.addEventListener('click', toggleZoom);
+        realCanvas.addEventListener('mousemove', onLensMove);
+        realCanvas.addEventListener('mouseleave', hideLens);
       }
 
       function showBanner(message, tone) {
