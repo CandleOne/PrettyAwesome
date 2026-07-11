@@ -930,6 +930,54 @@
         obj.setCoords();
       }
 
+      // Snap the edges being dragged during a scale to the print-area / canvas
+      // targets, so art can be sized to exactly fill the print area. Each moving
+      // edge snaps independently, keeping the opposite (anchor) edge fixed.
+      function snapOnScale(e) {
+        vGuide = null;
+        hGuide = null;
+        const obj = e.target;
+        if (!obj || obj === baseImage || !snapEnabled) return;
+        if (obj.angle) return; // bbox math below assumes no rotation
+        const corner = (e.transform && e.transform.corner) || obj.__corner;
+        if (!corner) return;
+
+        const w = obj.getScaledWidth(), h = obj.getScaledHeight();
+        const L = obj.left - w / 2, R = obj.left + w / 2;
+        const T = obj.top - h / 2, B = obj.top + h / 2;
+        const targetsX = [CANVAS_SIZE / 2, EPRINT.x, EPRINT.x + EPRINT.w, 0, CANVAS_SIZE];
+        const targetsY = [CANVAS_SIZE / 2, EPRINT.y, EPRINT.y + EPRINT.h, 0, CANVAS_SIZE];
+        function nearest(val, targets) {
+          let best = null, bd = SNAP;
+          for (let i = 0; i < targets.length; i++) { const d = Math.abs(val - targets[i]); if (d < bd) { bd = d; best = targets[i]; } }
+          return best;
+        }
+
+        const movesR = corner.indexOf('r') !== -1;
+        const movesL = corner.indexOf('l') !== -1;
+        const movesB = corner.indexOf('b') !== -1;
+        const movesT = corner.indexOf('t') !== -1;
+
+        // Horizontal: snap the moving edge, anchor the opposite edge.
+        if (movesR) {
+          const s = nearest(R, targetsX);
+          if (s !== null) { const nw = s - L; if (nw > 6) { obj.scaleX = nw / obj.width; obj.left = L + nw / 2; vGuide = s; } }
+        } else if (movesL) {
+          const s = nearest(L, targetsX);
+          if (s !== null) { const nw = R - s; if (nw > 6) { obj.scaleX = nw / obj.width; obj.left = R - nw / 2; vGuide = s; } }
+        }
+        // Vertical: snap the moving edge, anchor the opposite edge.
+        if (movesB) {
+          const s = nearest(B, targetsY);
+          if (s !== null) { const nh = s - T; if (nh > 6) { obj.scaleY = nh / obj.height; obj.top = T + nh / 2; hGuide = s; } }
+        } else if (movesT) {
+          const s = nearest(T, targetsY);
+          if (s !== null) { const nh = B - s; if (nh > 6) { obj.scaleY = nh / obj.height; obj.top = B - nh / 2; hGuide = s; } }
+        }
+
+        obj.setCoords();
+      }
+
       function clearGuides() {
         if (vGuide === null && hGuide === null) return;
         vGuide = null;
@@ -1247,6 +1295,7 @@
         });
         window.tfCanvas = canvas;
         canvas.on('object:moving', snapOnMove);
+        canvas.on('object:scaling', snapOnScale);
         canvas.on('mouse:up', clearGuides);
         canvas.on('object:modified', clearGuides);
         canvas.on('after:render', drawOverlay);
