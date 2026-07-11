@@ -139,6 +139,40 @@
     .shop-page .location-option:hover,
     .shop-page .location-option:focus { background: #e8f5f0; outline: none; }
     .shop-page .field-note { font-family: 'Courier New', Courier, monospace; font-size: 0.84rem; color: #555; margin-top: 6px; }
+    .shop-page #split-panel {
+      border: 0.15vw dashed #7a3c00;
+      background: #fff8ee;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+      font-family: 'Courier New', Courier, monospace;
+      color: #333;
+    }
+    .shop-page #split-panel h3 {
+      font-family: 'NimbusRoman', serif;
+      font-size: 1.2rem;
+      margin: 0 0 0.4rem;
+      color: #7a3c00;
+    }
+    .shop-page #split-panel .split-btn {
+      margin-top: 0.6rem;
+      padding: 9px 16px;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border: 0.15vw solid #7a3c00;
+      background: #7a3c00;
+      color: #fff8ee;
+      cursor: pointer;
+    }
+    .shop-page #split-panel .split-btn.secondary { background: #fff8ee; color: #7a3c00; }
+    .shop-page .split-segment {
+      border-top: 1px solid #e2cba7;
+      padding: 0.6rem 0 0.2rem;
+      margin-top: 0.6rem;
+      line-height: 1.6;
+    }
+    .shop-page .split-segment .seg-shop { font-weight: bold; color: #055034; }
   </style>
 </head>
 <body class="registration-page shop-page">
@@ -216,6 +250,7 @@
 
     <section class="registration-card">
       <h2 class="account-subtitle" id="results-title">The Tee-Minus network</h2>
+      <div id="split-panel" hidden></div>
       <div class="shop-list" id="shop-list"></div>
     </section>
   </main>
@@ -254,6 +289,7 @@
     const findBtn = document.getElementById('find-shops-btn');
     const statusEl = document.getElementById('shop-status');
     const listEl = document.getElementById('shop-list');
+    const splitPanel = document.getElementById('split-panel');
     const resultsTitle = document.getElementById('results-title');
     const locationResults = document.getElementById('location-results');
     const locationNote = document.getElementById('location-note');
@@ -380,7 +416,19 @@
       return (details.fulfillmentMethods || []).map((m) => map[m] || m).join(' · ') || 'Not listed';
     }
 
+    // Min / max / same-day capacity lines shared by both card renderers.
+    function capacityLines(d) {
+      const maxOrder = d.maximumOrderQuantity ? `${escapeHtml(d.maximumOrderQuantity)} pieces` : 'No limit';
+      const maxSameDay = d.sameDayFulfillmentAvailable && d.sameDayFulfillmentMaxQuantity
+        ? `${escapeHtml(d.sameDayFulfillmentMaxQuantity)} pieces`
+        : 'Not offered';
+      return `Minimum order: ${escapeHtml(d.minimumOrderQuantity || 0)} pieces<br>`
+        + `Maximum order: ${maxOrder}<br>`
+        + `Max same-day order: ${maxSameDay}<br>`;
+    }
+
     function renderNetworkOverview() {
+      hideSplitPanel();
       const shops = window.TMRouting.getActivePrintShops();
       resultsTitle.textContent = `The Tee-Minus network (${shops.length})`;
       if (!shops.length) {
@@ -401,7 +449,7 @@
             <p class="shop-meta">
               Location: ${escapeHtml(d.location || 'Not listed')}<br>
               Service radius: ${d.serviceRadiusMiles ? escapeHtml(d.serviceRadiusMiles) + ' mi' : 'Nationwide / not set'}<br>
-              Minimum order: ${escapeHtml(d.minimumOrderQuantity || 0)} pieces<br>
+              ${capacityLines(d)}
               Fulfillment: ${escapeHtml(methodsLabel(d))}
             </p>
             <div class="shop-card-actions">
@@ -419,9 +467,83 @@
     function fulfillReasons(r, ctx) {
       const out = [];
       if (!r.meetsMinimum) out.push('Below minimum order quantity');
+      if (r.meetsMaximum === false) out.push('Exceeds maximum order quantity');
       if (!r.methodOffered) out.push('Fulfillment method not offered');
       if (ctx.sameDayRequested && !r.sameDayCapable) out.push('Cannot meet same-day at this quantity');
       return out;
+    }
+
+    /* ── SPLIT ACROSS MULTIPLE SHOPS ───────────────────────────────── */
+    function hideSplitPanel() {
+      splitPanel.hidden = true;
+      splitPanel.innerHTML = '';
+    }
+
+    // True when no single shop can take the whole order, but at least one shop
+    // is blocked ONLY by its per-shop maximum (i.e. the order is just too big).
+    function orderExceedsSingleShop(results, ctx) {
+      const radiusMiles = Number.isFinite(ctx.searchRadiusMiles) ? ctx.searchRadiusMiles : Infinity;
+      const withinRadius = results.filter((r) => r.distanceMiles <= radiusMiles);
+      if (withinRadius.some((r) => orderFulfillable(r, ctx))) return false;
+      return withinRadius.some(
+        (r) => r.meetsMaximum === false && r.meetsMinimum && r.methodOffered
+          && (!ctx.sameDayRequested || r.sameDayCapable),
+      );
+    }
+
+    function renderSplitOffer(results, ctx) {
+      if (!orderExceedsSingleShop(results, ctx)) { hideSplitPanel(); return; }
+      splitPanel.hidden = false;
+      splitPanel.innerHTML = `
+        <h3>This order is bigger than any one shop</h3>
+        <p>No single partner can take all ${escapeHtml(ctx.quantity)} pieces. You can split
+        the workload across several nearby shops — each prints part of the run.</p>
+        <button type="button" class="split-btn" id="do-split-btn">Split across multiple shops</button>`;
+      document.getElementById('do-split-btn').addEventListener('click', () => renderSplitPlan(ctx));
+    }
+
+    async function renderSplitPlan(ctx) {
+      splitPanel.innerHTML = '<h3>Building a split plan…</h3>';
+      let plan;
+      try {
+        plan = await window.TMRouting.planSplit({
+          customerLocation: ctx.customerLocation,
+          quantity: ctx.quantity,
+          rush: false,
+          sameDayRequested: ctx.sameDayRequested,
+          fulfillmentMethod: ctx.fulfillmentMethod,
+        });
+      } catch (error) {
+        splitPanel.innerHTML = '<h3>Split unavailable</h3><p>We could not build a split plan right now. Please try again.</p>';
+        return;
+      }
+
+      if (!plan.segments.length) {
+        splitPanel.innerHTML = '<h3>Can’t split this order</h3>'
+          + '<p>No combination of nearby shops can cover this order. Try widening your search radius.</p>';
+        return;
+      }
+
+      const segmentsHtml = plan.segments.map((seg, i) => {
+        const dist = Number.isFinite(seg.distanceMiles) ? window.TMRouting.formatMiles(seg.distanceMiles) : '';
+        return `
+          <div class="split-segment">
+            <span class="seg-shop">Shop ${i + 1}: ${escapeHtml(seg.shopName)}</span><br>
+            ${escapeHtml(seg.quantity)} pieces${dist ? ' · ' + escapeHtml(dist) : ''}${seg.location ? ' · ' + escapeHtml(seg.location) : ''}<br>
+            Est. ${escapeHtml(window.TMRouting.formatMoney(seg.pricing.subtotal))} for this portion
+          </div>`;
+      }).join('');
+
+      const coverage = plan.fullyCovered
+        ? `<p>All ${escapeHtml(plan.allocated)} pieces are covered across ${escapeHtml(plan.segments.length)} shop(s).</p>`
+        : `<p>Nearby shops can cover ${escapeHtml(plan.allocated)} of ${escapeHtml(ctx.quantity)} pieces (${escapeHtml(plan.remaining)} still uncovered). Widen your radius to place the rest.</p>`;
+
+      splitPanel.innerHTML = `
+        <h3>Proposed split (${escapeHtml(plan.segments.length)} shop${plan.segments.length === 1 ? '' : 's'})</h3>
+        ${coverage}
+        ${segmentsHtml}
+        <p class="field-note" style="margin-top:0.8rem;">When you place this order, each shop must approve its portion. If any collaborating shop declines, the whole split order is cancelled.</p>
+        <a href="teeminus-order-form.html" class="split-btn" style="display:inline-block;text-decoration:none;margin-top:0.8rem;">Request this split order</a>`;
     }
 
     function renderRankedResults(results, ctx, matchingOnly) {
@@ -477,7 +599,7 @@
             <p class="shop-meta">
               Location: ${escapeHtml(d.location || 'Not listed')}<br>
               Service radius: ${d.serviceRadiusMiles ? escapeHtml(d.serviceRadiusMiles) + ' mi' : 'Nationwide / not set'}<br>
-              Minimum order: ${escapeHtml(d.minimumOrderQuantity || 0)} pieces<br>
+              ${capacityLines(d)}
               Fulfillment: ${escapeHtml(methodsLabel(d))}
             </p>
             ${reasons.length ? `<p class="reasons">${escapeHtml(reasons.join(' · '))}</p>` : ''}
@@ -517,6 +639,7 @@
         }
         statusEl.textContent = `Ranked from ${ranked.customerCoords.formatted}.`;
         renderRankedResults(ranked.results, ctx, matchingOnlyToggle.checked);
+        renderSplitOffer(ranked.results, ctx);
       } catch (error) {
         statusEl.textContent = 'Something went wrong while ranking shops. Please try again.';
       } finally {

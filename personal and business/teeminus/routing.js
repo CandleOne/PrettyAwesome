@@ -188,6 +188,9 @@
     // If a shop hasn't set a radius, don't exclude it on distance alone.
     const withinServiceArea = radius > 0 ? distance <= radius : Number.isFinite(distance);
     const meetsMinimum = quantity >= (Number(details.minimumOrderQuantity) || 0);
+    // Per-shop capacity ceiling. 0 / unset = no maximum.
+    const maxCapacity = Number(details.maximumOrderQuantity) || 0;
+    const meetsMaximum = maxCapacity <= 0 || quantity <= maxCapacity;
     const methodOffered =
       !context.fulfillmentMethod ||
       (details.fulfillmentMethods || []).includes(context.fulfillmentMethod);
@@ -199,12 +202,13 @@
     const reasons = [];
     if (!withinServiceArea) reasons.push('Outside service area');
     if (!meetsMinimum) reasons.push('Below minimum order quantity');
+    if (!meetsMaximum) reasons.push('Exceeds maximum order quantity');
     if (!methodOffered) reasons.push('Fulfillment method not offered');
     if (context.sameDayRequested && !sameDayCapable) {
       reasons.push('Cannot meet same-day at this quantity');
     }
 
-    const eligible = withinServiceArea && meetsMinimum && methodOffered && sameDayOk;
+    const eligible = withinServiceArea && meetsMinimum && meetsMaximum && methodOffered && sameDayOk;
 
     return {
       shop,
@@ -212,6 +216,8 @@
       distanceMiles: distance,
       withinServiceArea,
       meetsMinimum,
+      meetsMaximum,
+      maxCapacity,
       methodOffered,
       sameDayCapable,
       eligible,
@@ -261,6 +267,69 @@
     return { assigned, ranked, pricing };
   }
 
+  /**
+   * Split an order that exceeds any single shop's capacity across multiple
+   * nearby shops. Each shop is allocated up to its maximumOrderQuantity
+   * (0 = unlimited) and only if the allocation meets its minimumOrderQuantity.
+   * Candidates must be within their service area and offer the fulfillment
+   * method; the per-shop maximum is satisfied by construction.
+   *
+   * Returns { customerCoords, segments, allocated, remaining, fullyCovered }.
+   * Each segment: { shop, shopId, shopName, location, quantity, distanceMiles,
+   *                 sameDayCapable, pricing }.
+   */
+  async function planSplit(context) {
+    const ctx = context || {};
+    const totalQuantity = Math.max(0, Number(ctx.quantity) || 0);
+    const ranked = await rankShops(ctx);
+
+    // Only shops we could physically route to; ignore the full-order maximum
+    // here because we hand each shop a slice no larger than its ceiling.
+    const candidates = ranked.results
+      .filter((r) => r.withinServiceArea && r.methodOffered && Number.isFinite(r.distanceMiles))
+      .sort((a, b) => a.distanceMiles - b.distanceMiles);
+
+    const segments = [];
+    let remaining = totalQuantity;
+
+    for (const candidate of candidates) {
+      if (remaining <= 0) break;
+      const details = candidate.shop.printShop || {};
+      const minQty = Number(details.minimumOrderQuantity) || 0;
+      const ceiling = candidate.maxCapacity > 0 ? candidate.maxCapacity : remaining;
+      const allocation = Math.min(remaining, ceiling);
+      // Skip shops whose minimum we can't satisfy with what's left.
+      if (allocation < minQty) continue;
+
+      const sameDayMax = Number(details.sameDayFulfillmentMaxQuantity) || 0;
+      const sameDayCapable =
+        Boolean(details.sameDayFulfillmentAvailable) && allocation <= sameDayMax;
+
+      segments.push({
+        shop: candidate.shop,
+        shopId: candidate.shop.id,
+        shopName: candidate.shop.accountName || candidate.shop.name || 'Print Shop',
+        location: details.location || '',
+        quantity: allocation,
+        distanceMiles: Number.isFinite(candidate.distanceMiles)
+          ? Math.round(candidate.distanceMiles * 10) / 10
+          : null,
+        sameDayCapable,
+        pricing: estimatePricing({ quantity: allocation, rush: ctx.rush }),
+      });
+      remaining -= allocation;
+    }
+
+    const allocated = totalQuantity - remaining;
+    return {
+      customerCoords: ranked.customerCoords,
+      segments,
+      allocated,
+      remaining,
+      fullyCovered: remaining <= 0 && segments.length > 0,
+    };
+  }
+
   function formatMiles(distance) {
     if (!Number.isFinite(distance)) return 'Distance unavailable';
     if (distance < 0.1) return 'Under 0.1 mi';
@@ -282,6 +351,7 @@
     evaluateShop,
     rankShops,
     assignShop,
+    planSplit,
     formatMiles,
     formatMoney,
   };

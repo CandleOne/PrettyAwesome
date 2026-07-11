@@ -92,6 +92,10 @@
             <label for="ob-moq">Minimum order quantity</label>
             <input type="number" id="ob-moq" min="0" step="1">
 
+            <label for="ob-maxq">Maximum order quantity</label>
+            <input type="number" id="ob-maxq" min="0" step="1">
+            <p class="field-note">The largest single order you can take on. Orders above this are split across multiple partner shops. Leave blank/0 for no limit.</p>
+
             <label class="checkbox-label" for="ob-samples">
               <input type="checkbox" id="ob-samples"> Same day samples available
             </label>
@@ -195,6 +199,7 @@
     const locationInput = document.getElementById('ob-location');
     const radiusInput = document.getElementById('ob-radius');
     const moqInput = document.getElementById('ob-moq');
+    const maxqInput = document.getElementById('ob-maxq');
     const samplesInput = document.getElementById('ob-samples');
     const sameDayInput = document.getElementById('ob-sameday');
     const sameDayMaxInput = document.getElementById('ob-sameday-max');
@@ -269,6 +274,7 @@
       locationInput.value = d.location || '';
       radiusInput.value = d.serviceRadiusMiles || '';
       moqInput.value = d.minimumOrderQuantity || '';
+      maxqInput.value = d.maximumOrderQuantity || '';
       samplesInput.checked = Boolean(d.sameDaySamplesAvailable);
       sameDayInput.checked = Boolean(d.sameDayFulfillmentAvailable);
       sameDayMaxInput.value = d.sameDayFulfillmentMaxQuantity || '';
@@ -301,6 +307,7 @@
         location: locationInput.value.trim(),
         serviceRadiusMiles: Number(radiusInput.value || 0),
         minimumOrderQuantity: Number(moqInput.value || 0),
+        maximumOrderQuantity: Number(maxqInput.value || 0),
         sameDaySamplesAvailable: samplesInput.checked,
         sameDayFulfillmentAvailable: sameDayInput.checked,
         sameDayFulfillmentMaxQuantity: Number(sameDayMaxInput.value || 0),

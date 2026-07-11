@@ -375,6 +375,7 @@
             location: debugRand(DEBUG_CITIES),
             serviceRadiusMiles: debugInt(10, 60),
             minimumOrderQuantity: debugRand([1, 6, 10, 12, 24, 25, 50]),
+            maximumOrderQuantity: debugRand([150, 250, 500, 1000]),
             sameDaySamplesAvailable: Math.random() < 0.5,
             sameDayFulfillmentAvailable: sameDay,
             sameDayFulfillmentMaxQuantity: sameDay ? debugRand([24, 36, 50, 72, 100]) : 0,

@@ -794,6 +794,14 @@ select.inp {
         </div>
 
         <div class="field">
+          <label style="cursor:default">Large orders</label>
+          <label class="check-row rush">
+            <input type="checkbox" id="split-check" checked />
+            <span class="check-label">If no single shop can handle my full quantity, <strong>split the order across multiple partner shops</strong>. All collaborating shops must approve, or the order is cancelled.</span>
+          </label>
+        </div>
+
+        <div class="field">
           <label>Delivery method <span class="req">*</span></label>
           <div class="radio-group" id="delivery-group">
             <label class="radio-pill"><input type="radio" name="delivery" value="pickup" />Local pickup</label>
@@ -1120,7 +1128,7 @@ function collect() {
     projectName: document.getElementById('project-name').value.trim(),
     client:{ name:document.getElementById('name').value.trim(), email:document.getElementById('email').value.trim(), phone:document.getElementById('phone').value.trim() },
     design:{ fileName:fileInput.files[0]?.name||null, quantities:sizes, totalPieces:parseInt(totalEl.textContent)||0, shirtColor:document.getElementById('shirt-color').value, placement:document.getElementById('placement').value },
-    logistics:{ rushOrder:document.getElementById('rush-check').checked, delivery:dlv, shippingAddress:dlv==='shipping'?document.getElementById('ship-address').value.trim():null },
+    logistics:{ rushOrder:document.getElementById('rush-check').checked, allowSplit:document.getElementById('split-check').checked, delivery:dlv, shippingAddress:dlv==='shipping'?document.getElementById('ship-address').value.trim():null },
     billing:{
       consent: billingConsentInput.checked,
       customerId: paymentProfile && paymentProfile.customerId ? paymentProfile.customerId : null,
@@ -1316,13 +1324,33 @@ function escapeAssign(value) {
   }[ch]));
 }
 
-function renderAssignmentResult(assignment) {
+function renderAssignmentResult(assignment, split) {
   const el = document.getElementById('assignment-result');
   if (!el) return;
-  if (!assignment) { el.innerHTML = ''; return; }
+  if (!assignment && !split) { el.innerHTML = ''; return; }
 
   const boxBase = "margin:1rem 0;padding:0.9rem 1rem;text-align:left;font-family:'Courier New',Courier,monospace;";
-  const assigned = assignment.assigned;
+  const assigned = assignment ? assignment.assigned : null;
+
+  // Split order across multiple shops.
+  if (!assigned && split && split.segments && split.segments.length) {
+    const rows = split.segments.map((seg, i) => {
+      const dist = Number.isFinite(seg.distanceMiles) ? window.TMRouting.formatMiles(seg.distanceMiles) : '';
+      return `<div style="margin-top:6px;">`
+        + `<span style="font-weight:bold;color:#055034;">Shop ${i + 1}: ${escapeAssign(seg.shopName)}</span> — `
+        + `${escapeAssign(seg.quantity)} pcs${dist ? ' · ' + escapeAssign(dist) : ''}</div>`;
+    }).join('');
+    const coverage = split.fullyCovered
+      ? `All ${escapeAssign(split.allocated)} pieces are covered.`
+      : `Covers ${escapeAssign(split.allocated)} pieces; ${escapeAssign(split.remaining)} will be placed manually by Tee-Minus.`;
+    el.innerHTML = `<div style="${boxBase}border:2px solid #7a3c00;background:#fff8ee;color:#333;">`
+      + `<div style="font-weight:bold;color:#7a3c00;margin-bottom:4px;">Split across ${escapeAssign(split.segments.length)} shops</div>`
+      + `<div style="font-size:0.9rem;">${escapeAssign(coverage)}</div>`
+      + rows
+      + `<div style="margin-top:8px;font-size:0.82rem;color:#7a3c00;">Every collaborating shop must approve its portion. If any shop declines, the whole split order is cancelled.</div>`
+      + `</div>`;
+    return;
+  }
 
   if (!assigned) {
     el.innerHTML = `<div style="${boxBase}border:2px solid #7a3c00;background:#fff8ee;color:#7a3c00;">`
@@ -1431,6 +1459,40 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
         : null,
     };
 
+    // If no single shop can take the whole order and the customer opted in,
+    // build a split plan across multiple partner shops.
+    let splitPlan = null;
+    if (!assignedShop && payload.logistics.allowSplit && window.TMRouting && window.TMRouting.planSplit) {
+      try {
+        submitButton.textContent = 'Splitting across shops…';
+        splitPlan = await window.TMRouting.planSplit({
+          customerLocation: payload.logistics.shippingAddress || null,
+          quantity: payload.design.totalPieces,
+          rush: Boolean(payload.logistics.rushOrder),
+          sameDayRequested: false,
+          fulfillmentMethod: payload.logistics.delivery === 'shipping' ? 'ship-it-to-me' : 'pickup',
+        });
+      } catch (splitError) {
+        console.warn('Split planning failed:', splitError);
+      }
+    }
+    payload.routing.split = splitPlan && splitPlan.segments.length
+      ? {
+          segments: splitPlan.segments.map((s) => ({
+            shopId: s.shopId,
+            shopName: s.shopName,
+            location: s.location,
+            quantity: s.quantity,
+            distanceMiles: s.distanceMiles,
+            sameDayCapable: s.sameDayCapable,
+            pricing: s.pricing,
+          })),
+          allocated: splitPlan.allocated,
+          remaining: splitPlan.remaining,
+          fullyCovered: splitPlan.fullyCovered,
+        }
+      : null;
+
     if (window.TMAuth && window.TMAuth.getCurrentAccount && window.TMAuth.addOrderForAccount) {
       const account = window.TMAuth.getCurrentAccount();
       if (account) {
@@ -1449,6 +1511,7 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
             paymentMethodLast4: payload.billing.paymentMethodLast4,
             assignedShop: payload.routing.assignedShop,
             pricing: payload.routing.pricing,
+            split: payload.routing.split,
           },
         });
       }
@@ -1456,29 +1519,56 @@ document.getElementById('quote-form').addEventListener('submit', async e => {
 
     if (window.TMAuth && window.TMAuth.addNetworkOrder) {
       const routedAccount = window.TMAuth.getCurrentAccount ? window.TMAuth.getCurrentAccount() : null;
-      window.TMAuth.addNetworkOrder({
+      const baseOrder = {
         customerAccountId: routedAccount ? routedAccount.id : '',
         customerName: payload.client.name,
         customerEmail: payload.client.email,
         projectName: payload.projectName,
-        quantity: payload.design.totalPieces,
         shirtColor: payload.design.shirtColor,
         placement: payload.design.placement,
         deliveryMethod: payload.logistics.delivery,
         rushOrder: Boolean(payload.logistics.rushOrder),
         shippingAddress: payload.logistics.shippingAddress || '',
         customerLocation: payload.logistics.shippingAddress || '',
-        assignedShopId: payload.routing.assignedShop ? payload.routing.assignedShop.id : '',
-        assignedShopName: payload.routing.assignedShop ? payload.routing.assignedShop.name : '',
-        distanceMiles: payload.routing.assignedShop ? payload.routing.assignedShop.distanceMiles : null,
-        sameDayCapable: payload.routing.assignedShop ? payload.routing.assignedShop.sameDayCapable : false,
-        pricing: payload.routing.pricing,
         reference: result.file || '',
-        status: payload.routing.assignedShop ? 'assigned' : 'unassigned',
-      });
+      };
+
+      if (payload.routing.split && payload.routing.split.segments.length) {
+        // Split order: one linked network order per collaborating shop. Every
+        // shop must approve its part or the whole group is cancelled.
+        const segs = payload.routing.split.segments;
+        const groupId = `grp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+        segs.forEach((seg, index) => {
+          window.TMAuth.addNetworkOrder({
+            ...baseOrder,
+            quantity: seg.quantity,
+            assignedShopId: seg.shopId,
+            assignedShopName: seg.shopName,
+            distanceMiles: seg.distanceMiles,
+            sameDayCapable: seg.sameDayCapable,
+            pricing: seg.pricing,
+            status: 'assigned',
+            splitGroupId: groupId,
+            splitPartIndex: index + 1,
+            splitPartCount: segs.length,
+            splitTotalQuantity: payload.design.totalPieces,
+          });
+        });
+      } else {
+        window.TMAuth.addNetworkOrder({
+          ...baseOrder,
+          quantity: payload.design.totalPieces,
+          assignedShopId: payload.routing.assignedShop ? payload.routing.assignedShop.id : '',
+          assignedShopName: payload.routing.assignedShop ? payload.routing.assignedShop.name : '',
+          distanceMiles: payload.routing.assignedShop ? payload.routing.assignedShop.distanceMiles : null,
+          sameDayCapable: payload.routing.assignedShop ? payload.routing.assignedShop.sameDayCapable : false,
+          pricing: payload.routing.pricing,
+          status: payload.routing.assignedShop ? 'assigned' : 'unassigned',
+        });
+      }
     }
 
-    renderAssignmentResult(assignment);
+    renderAssignmentResult(assignment, payload.routing.split);
     console.log('%c✅ Tee-Minus Quote Saved', 'color:#055034;font-weight:bold;font-size:14px');
     console.log(JSON.stringify(payload, null, 2));
     console.log('Saved PDF:', result.file);

@@ -361,6 +361,7 @@
       location: normalize(input.location),
       serviceRadiusMiles: Number(input.serviceRadiusMiles || 0),
       minimumOrderQuantity: Number(input.minimumOrderQuantity || 0),
+      maximumOrderQuantity: Number(input.maximumOrderQuantity || 0),
       sameDaySamplesAvailable: Boolean(input.sameDaySamplesAvailable),
       sameDayFulfillmentAvailable: Boolean(input.sameDayFulfillmentAvailable),
       sameDayFulfillmentMaxQuantity: Number(input.sameDayFulfillmentMaxQuantity || 0),
@@ -543,6 +544,10 @@
       pricing: input && input.pricing ? input.pricing : null,
       reference: normalize(input && input.reference),
       declinedShopIds: Array.isArray(input && input.declinedShopIds) ? input.declinedShopIds : [],
+      splitGroupId: normalize(input && input.splitGroupId) || null,
+      splitPartIndex: input && input.splitPartIndex != null ? Number(input.splitPartIndex) : null,
+      splitPartCount: input && input.splitPartCount != null ? Number(input.splitPartCount) : null,
+      splitTotalQuantity: input && input.splitTotalQuantity != null ? Number(input.splitTotalQuantity) : null,
     };
     orders.unshift(order);
     writeNetworkOrders(orders);
@@ -561,6 +566,29 @@
   function getOrdersForShop(shopId) {
     if (!shopId) return [];
     return readNetworkOrders().filter((order) => order.assignedShopId === shopId);
+  }
+
+  function getNetworkOrderGroup(groupId) {
+    if (!groupId) return [];
+    return readNetworkOrders().filter((order) => order.splitGroupId === groupId);
+  }
+
+  /**
+   * Update every network order in a split group with the same patch.
+   * Returns the updated group (or [] if the group id is empty).
+   */
+  function updateNetworkOrderGroup(groupId, patch) {
+    if (!groupId) return [];
+    const orders = readNetworkOrders();
+    let changed = false;
+    orders.forEach((order, index) => {
+      if (order.splitGroupId === groupId) {
+        orders[index] = { ...order, ...(patch || {}), updatedAt: new Date().toISOString() };
+        changed = true;
+      }
+    });
+    if (changed) writeNetworkOrders(orders);
+    return getNetworkOrderGroup(groupId);
   }
 
   async function signInUser(credentials) {
@@ -669,6 +697,8 @@
     addNetworkOrder,
     updateNetworkOrder,
     getOrdersForShop,
+    getNetworkOrderGroup,
+    updateNetworkOrderGroup,
     isAdminAuthed,
     signInAdmin,
     signOutAdmin,

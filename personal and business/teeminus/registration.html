@@ -70,6 +70,10 @@
                         <label for="min-order-qty">Minimum Order Quantity</label>
                         <input type="number" id="min-order-qty" name="min_order_quantity" min="1" step="1" disabled>
 
+                        <label for="max-order-qty">Maximum Order Quantity</label>
+                        <input type="number" id="max-order-qty" name="max_order_quantity" min="0" step="1" disabled>
+                        <p class="field-note">The largest single order you can take. Bigger orders get split across partner shops. Leave blank/0 for no limit.</p>
+
                         <label class="checkbox-label" for="same-day-samples">
                             <input type="checkbox" id="same-day-samples" name="same_day_samples" value="yes" disabled>
                             Same day samples available
@@ -145,6 +149,7 @@
         const locationResults = document.getElementById('location-results');
         const locationNote = document.getElementById('location-note');
         const minOrderQtyInput = document.getElementById('min-order-qty');
+        const maxOrderQtyInput = document.getElementById('max-order-qty');
         const sameDayFulfillmentCheckbox = document.getElementById('same-day-fulfillment');
         const sameDayMaxQtyInput = document.getElementById('same-day-max-qty');
         const fulfillmentMethodCheckboxes = Array.from(document.querySelectorAll('input[name="fulfillment_methods[]"]'));
@@ -176,6 +181,7 @@
                         location: normalizeValue(shopLocationInput.value),
                         serviceRadiusMiles: Number(document.getElementById('service-radius').value || 0),
                         minimumOrderQuantity: Number(minOrderQtyInput.value || 0),
+                        maximumOrderQuantity: Number(maxOrderQtyInput.value || 0),
                         sameDaySamplesAvailable: document.getElementById('same-day-samples').checked,
                         sameDayFulfillmentAvailable: sameDayFulfillmentCheckbox.checked,
                         sameDayFulfillmentMaxQuantity: Number(sameDayMaxQtyInput.value || 0),

@@ -148,10 +148,16 @@
     function statusLabel(status) {
       return {
         assigned: 'New — awaiting your response',
+        'awaiting-partners': 'Your part approved — waiting on partner shops',
         accepted: 'Accepted',
         'in-production': 'In production',
         fulfilled: 'Fulfilled',
+        cancelled: 'Cancelled — a partner shop declined',
       }[status] || status;
+    }
+
+    function isSplit(order) {
+      return Boolean(order.splitGroupId);
     }
 
     function orderCard(order, kind) {
@@ -163,12 +169,19 @@
       if (kind === 'incoming') {
         actions = `
           <button class="primary" data-act="accept" data-id="${order.id}">Accept order</button>
-          <button class="danger" data-act="decline" data-id="${order.id}">Decline / re-route</button>`;
+          <button class="danger" data-act="decline" data-id="${order.id}">${isSplit(order) ? 'Decline (cancels split)' : 'Decline / re-route'}</button>`;
       } else if (order.status === 'accepted') {
         actions = `<button class="primary" data-act="produce" data-id="${order.id}">Start production</button>`;
       } else if (order.status === 'in-production') {
         actions = `<button class="primary" data-act="fulfill" data-id="${order.id}">Mark fulfilled</button>`;
       }
+
+      const splitBadge = isSplit(order)
+        ? `<span class="badge warn">Split part ${escapeHtml(order.splitPartIndex)}/${escapeHtml(order.splitPartCount)}</span>`
+        : '';
+      const splitMeta = isSplit(order)
+        ? `Split order: your part is ${escapeHtml(order.quantity || 0)} of ${escapeHtml(order.splitTotalQuantity || 0)} total pieces · all ${escapeHtml(order.splitPartCount)} shops must approve<br>`
+        : '';
 
       return `
         <article class="order-card ${kind === 'completed' ? 'done' : ''}">
@@ -178,10 +191,12 @@
           </div>
           <div class="order-badges">
             <span class="badge ${order.status === 'fulfilled' ? 'green' : ''}">${escapeHtml(statusLabel(order.status))}</span>
+            ${splitBadge}
             ${order.rushOrder ? '<span class="badge warn">Rush</span>' : ''}
             ${order.sameDayCapable ? '<span class="badge green">Same-day</span>' : ''}
           </div>
           <p class="order-meta">
+            ${splitMeta}
             Customer: ${escapeHtml(order.customerName || '—')} · ${escapeHtml(order.customerEmail || '')}<br>
             Pieces: ${escapeHtml(order.quantity || 0)} · Color: ${escapeHtml(order.shirtColor || '—')} · Placement: ${escapeHtml(order.placement || '—')}<br>
             Fulfillment: ${escapeHtml(methodLabel)}${distance ? ' · ' + escapeHtml(distance) : ''}<br>
@@ -198,11 +213,11 @@
       const orders = window.TMAuth.getOrdersForShop(shop.id);
 
       const incoming = orders.filter((o) => o.status === 'assigned');
-      const active = orders.filter((o) => o.status === 'accepted' || o.status === 'in-production');
-      const completed = orders.filter((o) => o.status === 'fulfilled');
+      const active = orders.filter((o) => o.status === 'awaiting-partners' || o.status === 'accepted' || o.status === 'in-production');
+      const completed = orders.filter((o) => o.status === 'fulfilled' || o.status === 'cancelled');
 
       const pipeline = active.reduce((sum, o) => sum + (o.pricing ? o.pricing.shopPayout : 0), 0);
-      const earned = completed.reduce((sum, o) => sum + (o.pricing ? o.pricing.shopPayout : 0), 0);
+      const earned = orders.filter((o) => o.status === 'fulfilled').reduce((sum, o) => sum + (o.pricing ? o.pricing.shopPayout : 0), 0);
 
       metricsEl.innerHTML = [
         { v: incoming.length, l: 'Incoming' },
@@ -267,16 +282,34 @@
       if (!order || order.assignedShopId !== shop.id) { render(); return; }
 
       if (act === 'accept') {
-        window.TMAuth.updateNetworkOrder(id, { status: 'accepted' });
-        showAlert('Order accepted.', 'success');
+        if (isSplit(order)) {
+          window.TMAuth.updateNetworkOrder(id, { status: 'awaiting-partners' });
+          const group = window.TMAuth.getNetworkOrderGroup(order.splitGroupId);
+          const approvedStates = ['awaiting-partners', 'accepted', 'in-production', 'fulfilled'];
+          const allApproved = group.length > 0 && group.every((o) => approvedStates.includes(o.status));
+          if (allApproved) {
+            window.TMAuth.updateNetworkOrderGroup(order.splitGroupId, { status: 'accepted' });
+            showAlert('All shops approved — split order confirmed!', 'success');
+          } else {
+            showAlert('Your portion is approved. Waiting on the other shops.', 'info');
+          }
+        } else {
+          window.TMAuth.updateNetworkOrder(id, { status: 'accepted' });
+          showAlert('Order accepted.', 'success');
+        }
       } else if (act === 'produce') {
         window.TMAuth.updateNetworkOrder(id, { status: 'in-production' });
       } else if (act === 'fulfill') {
         window.TMAuth.updateNetworkOrder(id, { status: 'fulfilled' });
         showAlert('Marked fulfilled.', 'success');
       } else if (act === 'decline') {
-        btn.disabled = true;
-        await reassignOrder(order);
+        if (isSplit(order)) {
+          window.TMAuth.updateNetworkOrderGroup(order.splitGroupId, { status: 'cancelled' });
+          showAlert('You declined your portion — the whole split order was cancelled.', 'info');
+        } else {
+          btn.disabled = true;
+          await reassignOrder(order);
+        }
       }
       render();
     });

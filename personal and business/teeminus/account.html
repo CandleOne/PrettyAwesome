@@ -82,6 +82,9 @@
             <label for="account-min-order-qty">Minimum Order Quantity</label>
             <input type="number" id="account-min-order-qty" min="1" step="1">
 
+            <label for="account-max-order-qty">Maximum Order Quantity</label>
+            <input type="number" id="account-max-order-qty" min="0" step="1">
+
             <label class="checkbox-label" for="account-same-day-samples">
               <input type="checkbox" id="account-same-day-samples" value="yes">
               Same day samples available
@@ -217,6 +220,7 @@
     const locationNote = document.getElementById('account-location-note');
     const serviceRadiusInput = document.getElementById('account-service-radius');
     const minOrderQtyInput = document.getElementById('account-min-order-qty');
+    const maxOrderQtyInput = document.getElementById('account-max-order-qty');
     const sameDaySamplesInput = document.getElementById('account-same-day-samples');
     const sameDayFulfillmentInput = document.getElementById('account-same-day-fulfillment');
     const sameDayMaxQtyInput = document.getElementById('account-same-day-max-qty');
@@ -301,6 +305,7 @@
           `<p>Verification: ${verStatus}</p>`,
           `<p>Payout: ${payoutText}</p>`,
           `<p>Minimum Order Quantity: ${printShopDetails.minimumOrderQuantity || 0}</p>`,
+          `<p>Maximum Order Quantity: ${printShopDetails.maximumOrderQuantity || 'No limit'}</p>`,
           `<p>Same Day Samples: ${printShopDetails.sameDaySamplesAvailable ? 'Yes' : 'No'}</p>`,
           `<p>Same Day Fulfillment: ${printShopDetails.sameDayFulfillmentAvailable ? 'Yes' : 'No'}</p>`,
           `<p>Same Day Max Quantity: ${printShopDetails.sameDayFulfillmentMaxQuantity || 0}</p>`,
@@ -355,6 +360,7 @@
         shopLocationInput.value = details.location || '';
         serviceRadiusInput.value = details.serviceRadiusMiles || '';
         minOrderQtyInput.value = details.minimumOrderQuantity || '';
+        maxOrderQtyInput.value = details.maximumOrderQuantity || '';
         sameDaySamplesInput.checked = Boolean(details.sameDaySamplesAvailable);
         sameDayFulfillmentInput.checked = Boolean(details.sameDayFulfillmentAvailable);
         sameDayMaxQtyInput.value = details.sameDayFulfillmentMaxQuantity || '';
@@ -368,6 +374,7 @@
         shopLocationInput.value = '';
         serviceRadiusInput.value = '';
         minOrderQtyInput.value = '';
+        maxOrderQtyInput.value = '';
         sameDaySamplesInput.checked = false;
         sameDayFulfillmentInput.checked = false;
         sameDayMaxQtyInput.value = '';
@@ -383,6 +390,7 @@
         location: shopLocationInput.value,
         serviceRadiusMiles: Number(serviceRadiusInput.value || 0),
         minimumOrderQuantity: Number(minOrderQtyInput.value || 0),
+        maximumOrderQuantity: Number(maxOrderQtyInput.value || 0),
         sameDaySamplesAvailable: sameDaySamplesInput.checked,
         sameDayFulfillmentAvailable: sameDayFulfillmentInput.checked,
         sameDayFulfillmentMaxQuantity: Number(sameDayMaxQtyInput.value || 0),
