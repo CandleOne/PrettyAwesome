@@ -638,6 +638,11 @@
 
         <!-- Preview + editor workspace -->
         <div class="tf-workspace">
+          <!-- Canvas stage (interactive editor) -->
+          <div class="tf-stage">
+            <canvas id="tf-canvas" width="700" height="700"></canvas>
+          </div>
+
           <!-- Realistic photo render (recolored + design composited) -->
           <div class="tf-render-panel">
             <div class="tf-render-head">
@@ -655,14 +660,9 @@
               <i class="ti ti-camera" aria-hidden="true"></i><span>Download mockup</span>
             </button>
           </div>
-
-          <!-- Canvas stage (interactive editor) -->
-          <div class="tf-stage">
-            <canvas id="tf-canvas" width="700" height="700"></canvas>
-          </div>
         </div>
 
-        <p class="tf-hint">Drag to move · corner handles to scale &amp; rotate · double-click text to edit · Delete key removes the selected layer. <strong>Snap</strong> aligns layers to the grid and center guides.</p>
+        <p class="tf-hint">Keep your artwork inside the dashed <strong>print area</strong> — that's exactly what lands on the shirt. Drag to move · corner handles to scale &amp; rotate · double-click text to edit · Delete removes a layer. <strong>Snap</strong> aligns to the grid and center guides.</p>
 
         <!-- Finish -->
         <div class="tf-finish">
@@ -739,7 +739,9 @@
 
       /* Realistic photo preview state */
       const SHIRT_SRC = { front: 'tshirtfront.png', back: 'tshirtback.png' };
-      // Chest print area as a fraction of the drawn shirt rectangle (square).
+      // Editor print area (canvas px): the chest zone whose contents map onto the shirt.
+      const EPRINT = { x: 200, y: 200, w: 300, h: 300 };
+      // Chest print area as a fraction of the drawn shirt rectangle (square, same aspect as EPRINT).
       const PRINT = { x: 0.325, y: 0.265, size: 0.35 };
       const shirtImgs = {};     // { front: Image, back: Image }
       let realCanvas = null, realCtx = null;
@@ -919,6 +921,15 @@
             ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(CANVAS_SIZE, y + 0.5); ctx.stroke();
           }
         }
+        // Print-area boundary: only artwork inside this box lands on the shirt.
+        ctx.setLineDash([7, 5]);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(11, 61, 43, 0.55)';
+        ctx.strokeRect(EPRINT.x + 0.5, EPRINT.y + 0.5, EPRINT.w, EPRINT.h);
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(11, 61, 43, 0.65)';
+        ctx.font = '600 12px "Courier New", monospace';
+        ctx.fillText('PRINT AREA', EPRINT.x + 4, EPRINT.y - 6);
         ctx.strokeStyle = '#e8467c';
         ctx.lineWidth = 1;
         ctx.setLineDash([5, 4]);
@@ -972,7 +983,10 @@
         canvas.backgroundColor = '';
         canvas.renderAll();
         let url = null;
-        try { url = canvas.toDataURL({ format: 'png', multiplier: 1 }); } catch (e) { url = null; }
+        // Export only the chest print zone so positions map 1:1 onto the shirt.
+        try {
+          url = canvas.toDataURL({ format: 'png', multiplier: 1, left: EPRINT.x, top: EPRINT.y, width: EPRINT.w, height: EPRINT.h });
+        } catch (e) { url = null; }
         canvas.backgroundColor = prevBg;
         if (baseImage) baseImage.visible = true;
         busyExport = false;
