@@ -73,6 +73,8 @@
     .creator .tf-tool.tf-primary { background: var(--green); color: #fff; border-color: var(--green); }
     .creator .tf-tool.tf-primary:hover { background: var(--green-dark); }
     .creator .tf-tool.tf-danger:hover { background: #fdeaea; border-color: #c0392b; color: #c0392b; }
+    .creator .tf-tool.tf-toggle.active { background: var(--green); color: #fff; border-color: var(--green); }
+    .creator .tf-tool.tf-toggle.active:hover { background: var(--green-dark); }
     .creator #tf-export { margin-left: auto; }
     .creator .tf-sep { width: 1px; align-self: stretch; background: var(--border-strong); margin: 2px 4px; }
     .creator .tf-color-field { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); font-family: inherit; }
@@ -595,6 +597,12 @@
 
           <span class="tf-sep" aria-hidden="true"></span>
 
+          <button type="button" class="tf-tool tf-toggle active" id="tf-snap" title="Toggle grid &amp; alignment snapping" aria-pressed="true">
+            <i class="ti ti-grid-dots" aria-hidden="true"></i><span>Snap</span>
+          </button>
+
+          <span class="tf-sep" aria-hidden="true"></span>
+
           <label class="tf-color-field" title="Text color">
             Text color
             <input type="color" id="tf-text-color" value="#111111" />
@@ -614,7 +622,7 @@
           <canvas id="tf-canvas" width="700" height="700"></canvas>
         </div>
 
-        <p class="tf-hint">Drag to move · corner handles to scale &amp; rotate · double-click text to edit · Delete key removes the selected layer.</p>
+        <p class="tf-hint">Drag to move · corner handles to scale &amp; rotate · double-click text to edit · Delete key removes the selected layer. <strong>Snap</strong> aligns layers to the grid and center guides.</p>
 
         <!-- Finish -->
         <div class="tf-finish">
@@ -670,6 +678,8 @@
        in <head>. */
     (function () {
       const CANVAS_SIZE = 700;
+      const GRID = 25;   // grid cell size in px
+      const SNAP = 8;    // snap threshold in px
 
       const TEMPLATES = [
         { id: 'boxy-forest', name: 'Boxy · Forest', url: 'assets/shirticons/boxy/cotton/BoxyCottonforest.png' },
@@ -683,6 +693,9 @@
       let canvas = null;
       let baseImage = null;
       let currentTemplate = TEMPLATES[0];
+      let snapEnabled = true;   // grid + alignment snapping
+      let vGuide = null;        // active vertical alignment guide (x), or null
+      let hGuide = null;        // active horizontal alignment guide (y), or null
 
       function $(id) { return document.getElementById(id); }
 
@@ -797,6 +810,80 @@
         }
       }
 
+      /* ===== Grid + alignment snapping ===== */
+      // All user objects use center origin, so obj.left/top is the object center.
+      function snapOnMove(e) {
+        const obj = e.target;
+        vGuide = null;
+        hGuide = null;
+        if (!obj || obj === baseImage || !snapEnabled) return;
+
+        const mid = CANVAS_SIZE / 2;
+        const halfW = obj.getScaledWidth() / 2;
+        const halfH = obj.getScaledHeight() / 2;
+
+        // Horizontal position (X): canvas center → left edge → right edge → grid.
+        if (Math.abs(obj.left - mid) < SNAP) { obj.left = mid; vGuide = mid; }
+        else if (Math.abs(obj.left - halfW) < SNAP) { obj.left = halfW; vGuide = 0; }
+        else if (Math.abs(obj.left + halfW - CANVAS_SIZE) < SNAP) { obj.left = CANVAS_SIZE - halfW; vGuide = CANVAS_SIZE; }
+        else {
+          const g = Math.round(obj.left / GRID) * GRID;
+          if (Math.abs(obj.left - g) < SNAP) obj.left = g;
+        }
+
+        // Vertical position (Y): canvas center → top edge → bottom edge → grid.
+        if (Math.abs(obj.top - mid) < SNAP) { obj.top = mid; hGuide = mid; }
+        else if (Math.abs(obj.top - halfH) < SNAP) { obj.top = halfH; hGuide = 0; }
+        else if (Math.abs(obj.top + halfH - CANVAS_SIZE) < SNAP) { obj.top = CANVAS_SIZE - halfH; hGuide = CANVAS_SIZE; }
+        else {
+          const g = Math.round(obj.top / GRID) * GRID;
+          if (Math.abs(obj.top - g) < SNAP) obj.top = g;
+        }
+
+        obj.setCoords();
+      }
+
+      function clearGuides() {
+        if (vGuide === null && hGuide === null) return;
+        vGuide = null;
+        hGuide = null;
+        canvas.requestRenderAll();
+      }
+
+      // Drawn on top of every frame: faint grid (when snapping on) + active guides.
+      function drawOverlay() {
+        const ctx = canvas.getContext();
+        if (!ctx) return;
+        ctx.save();
+        if (snapEnabled) {
+          ctx.strokeStyle = 'rgba(5, 80, 52, 0.10)';
+          ctx.lineWidth = 1;
+          for (let x = GRID; x < CANVAS_SIZE; x += GRID) {
+            ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, CANVAS_SIZE); ctx.stroke();
+          }
+          for (let y = GRID; y < CANVAS_SIZE; y += GRID) {
+            ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(CANVAS_SIZE, y + 0.5); ctx.stroke();
+          }
+        }
+        ctx.strokeStyle = '#e8467c';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 4]);
+        if (vGuide !== null) { ctx.beginPath(); ctx.moveTo(vGuide + 0.5, 0); ctx.lineTo(vGuide + 0.5, CANVAS_SIZE); ctx.stroke(); }
+        if (hGuide !== null) { ctx.beginPath(); ctx.moveTo(0, hGuide + 0.5); ctx.lineTo(CANVAS_SIZE, hGuide + 0.5); ctx.stroke(); }
+        ctx.restore();
+      }
+
+      function toggleSnap() {
+        snapEnabled = !snapEnabled;
+        const btn = $('tf-snap');
+        if (btn) {
+          btn.classList.toggle('active', snapEnabled);
+          btn.setAttribute('aria-pressed', snapEnabled ? 'true' : 'false');
+        }
+        clearGuides();
+        canvas.requestRenderAll();
+      }
+
       function showBanner(message, tone) {
         const banner = $('tf-banner');
         if (!banner) return;
@@ -843,6 +930,7 @@
         });
         $('tf-forward').addEventListener('click', bringForward);
         $('tf-backward').addEventListener('click', sendBackward);
+        $('tf-snap').addEventListener('click', toggleSnap);
         $('tf-delete').addEventListener('click', deleteSelected);
         $('tf-export').addEventListener('click', exportPng);
         $('tf-save').addEventListener('click', saveDesign);
@@ -864,8 +952,13 @@
           height: CANVAS_SIZE,
           backgroundColor: '#ffffff',
           preserveObjectStacking: true,
+          enableRetinaScaling: false,
         });
         window.tfCanvas = canvas;
+        canvas.on('object:moving', snapOnMove);
+        canvas.on('mouse:up', clearGuides);
+        canvas.on('object:modified', clearGuides);
+        canvas.on('after:render', drawOverlay);
         renderTemplatePicker();
         loadTemplate(currentTemplate);
         wire();
