@@ -902,9 +902,13 @@
         const mid = CANVAS_SIZE / 2;
         const halfW = obj.getScaledWidth() / 2;
         const halfH = obj.getScaledHeight() / 2;
+        const PL = EPRINT.x, PR = EPRINT.x + EPRINT.w;   // print-area left / right
+        const PT = EPRINT.y, PB = EPRINT.y + EPRINT.h;   // print-area top / bottom
 
-        // Horizontal position (X): canvas center → left edge → right edge → grid.
+        // Horizontal (X): center → print-area edges → canvas edges → grid.
         if (Math.abs(obj.left - mid) < SNAP) { obj.left = mid; vGuide = mid; }
+        else if (Math.abs((obj.left - halfW) - PL) < SNAP) { obj.left = PL + halfW; vGuide = PL; }
+        else if (Math.abs((obj.left + halfW) - PR) < SNAP) { obj.left = PR - halfW; vGuide = PR; }
         else if (Math.abs(obj.left - halfW) < SNAP) { obj.left = halfW; vGuide = 0; }
         else if (Math.abs(obj.left + halfW - CANVAS_SIZE) < SNAP) { obj.left = CANVAS_SIZE - halfW; vGuide = CANVAS_SIZE; }
         else {
@@ -912,8 +916,10 @@
           if (Math.abs(obj.left - g) < SNAP) obj.left = g;
         }
 
-        // Vertical position (Y): canvas center → top edge → bottom edge → grid.
+        // Vertical (Y): center → print-area edges → canvas edges → grid.
         if (Math.abs(obj.top - mid) < SNAP) { obj.top = mid; hGuide = mid; }
+        else if (Math.abs((obj.top - halfH) - PT) < SNAP) { obj.top = PT + halfH; hGuide = PT; }
+        else if (Math.abs((obj.top + halfH) - PB) < SNAP) { obj.top = PB - halfH; hGuide = PB; }
         else if (Math.abs(obj.top - halfH) < SNAP) { obj.top = halfH; hGuide = 0; }
         else if (Math.abs(obj.top + halfH - CANVAS_SIZE) < SNAP) { obj.top = CANVAS_SIZE - halfH; hGuide = CANVAS_SIZE; }
         else {
