@@ -39,6 +39,63 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       border: 1px solid rgba(0, 0, 0, 0.04);
     }
+
+    /* ===== ThreadForge editor (ported from zyadhajaji/threadforge) ===== */
+    .creator .tf-editor { display: flex; flex-direction: column; gap: 1.2rem; }
+    .creator .tf-head h2 { margin: 0; font-size: 1.5rem; color: var(--text-primary); }
+    .creator .tf-head .tf-sub { margin: .35rem 0 0; color: var(--text-muted); font-size: .95rem; }
+
+    .creator .tf-templates { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .creator .tf-template {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      width: 96px; padding: 6px; cursor: pointer; font-size: 11px;
+      background: #fff; border: 1px solid var(--border-strong); border-radius: var(--radius);
+      color: var(--text-secondary); font-family: inherit;
+      transition: border-color .15s, box-shadow .15s, color .15s;
+    }
+    .creator .tf-template img { width: 100%; height: 74px; object-fit: contain; background: var(--surface-1); border-radius: 4px; }
+    .creator .tf-template:hover { border-color: var(--green); }
+    .creator .tf-template.active { border-color: var(--green); box-shadow: 0 0 0 2px var(--green-light); color: var(--green-dark); font-weight: 600; }
+
+    .creator .tf-toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: .4rem;
+      padding: .5rem; background: var(--surface-1);
+      border: 1px solid var(--border-strong); border-radius: var(--radius);
+    }
+    .creator .tf-tool {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px;
+      background: #fff; border: 1px solid var(--border-strong); border-radius: 6px;
+      color: var(--text-primary); font-size: 13px; font-family: inherit; cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .creator .tf-tool i { font-size: 16px; line-height: 1; }
+    .creator .tf-tool:hover { background: var(--green-light); border-color: var(--green); }
+    .creator .tf-tool.tf-primary { background: var(--green); color: #fff; border-color: var(--green); }
+    .creator .tf-tool.tf-primary:hover { background: var(--green-dark); }
+    .creator .tf-tool.tf-danger:hover { background: #fdeaea; border-color: #c0392b; color: #c0392b; }
+    .creator #tf-export { margin-left: auto; }
+    .creator .tf-sep { width: 1px; align-self: stretch; background: var(--border-strong); margin: 2px 4px; }
+    .creator .tf-color-field { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); font-family: inherit; }
+    .creator .tf-color-field input[type="color"] { width: 32px; height: 28px; padding: 2px; border: 1px solid var(--border-strong); border-radius: 4px; background: #fff; cursor: pointer; }
+
+    .creator .tf-stage {
+      display: flex; justify-content: center; padding: 1rem;
+      background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    .creator .tf-stage .canvas-container { max-width: 100%; }
+    .creator .tf-stage canvas { max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 18px rgba(0, 0, 0, .08); }
+    .creator .tf-hint { margin: -.4rem 0 0; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+    .creator .tf-finish { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+    .creator .tf-name { flex: 1; min-width: 220px; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 1px solid var(--border-strong); border-radius: 6px; }
+    .creator .tf-banner { padding: .7rem .9rem; border-radius: 6px; font-size: .9rem; }
+    .creator .tf-banner.ok { background: var(--green-light); color: var(--green-dark); border: 1px solid var(--green); }
+    .creator .tf-banner.warn { background: #fff3d6; color: #7a3c00; border: 1px solid #7a3c00; }
+
+    @media (max-width: 640px) {
+      .creator .tf-tool span { display: none; }
+      .creator .tf-tool.tf-primary span, .creator #tf-save span { display: inline; }
+    }
     .creator .sr-only {
       position: absolute;
       width: 1px;
@@ -505,203 +562,66 @@
   <!-- ===== CREATOR SECTION ===== -->
   <div class="creator-section">
     <div class="creator" role="main">
-      <h2 class="sr-only">Design your dream shirt</h2>
-      <br />
+      <h2 class="sr-only">ThreadForge mockup studio</h2>
 
-      <!-- Step tabs -->
-      <div class="steps" role="tablist">
-        <div class="step-tab active" data-step="0"><span class="num">01</span>Fit</div>
-        <div class="step-tab" data-step="1"><span class="num">02</span>Material</div>
-        <div class="step-tab" data-step="2"><span class="num">03</span>Color</div>
-        <div class="step-tab" data-step="3"><span class="num">04</span>Crop</div>
-        <div class="step-tab" data-step="4"><span class="num">05</span>Your Art</div>
-        <div class="step-tab" data-step="5"><span class="num">06</span>Finish</div>
-      </div>
-
-      <!-- Step 0: Fit -->
-      <div class="panel active" id="panel-0">
-        <div class="controls">
-          <p class="section-label">Find your fit</p>
-          <button class="opt-btn" data-group="fit" data-val="casual" onclick="pick(this)">
-            Casual <span class="opt-btn-sub">Relaxed everyday fit</span>
-          </button>
-          <button class="opt-btn" data-group="fit" data-val="boxy" onclick="pick(this)">
-            Boxy <span class="opt-btn-sub">Bold, square silhouette · shorter cut</span>
-          </button>
-          <!-- <button class="opt-btn" data-group="fit" data-val="sporty" onclick="pick(this)">
-            Sporty <span class="opt-btn-sub">Athletic cut · close to the body</span>
-          </button>     --!>
-        </div>
-        <div class="preview-col">
-          <span class="preview-label">Preview</span>
-          <div class="shirt-wrap">
-            <img id="main-shirt" class="shirt-img" src="" alt="Shirt preview" />
-            <div class="crop-indicator" id="crop-line"></div>
-            <img class="art-overlay" id="art-overlay" alt="" />
-          </div>
-        </div>
-        <div class="nav-row">
-          <button class="btn btn-next" id="next-0" onclick="nextStep()" disabled>
-            Next: Choose your material →
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 1: Material -->
-      <div class="panel" id="panel-1">
-        <div class="controls">
-          <p class="section-label">Choose your material</p>
-          <button class="opt-btn" data-group="material" data-val="cotton" onclick="pick(this)">
-            Cotton <span class="opt-btn-sub">Soft · classic feel · widely available</span>
-          </button>
-          <button class="opt-btn" data-group="material" data-val="hemp" onclick="pick(this)">
-            Hemp <span class="opt-btn-sub">Durable · breathable · low water use</span>
-          </button>
-          <button class="opt-btn" data-group="material" data-val="wool" onclick="pick(this)">
-            Merino Wool <span class="opt-btn-sub">Temperature-regulating · odor-resistant</span>
-          </button>
-        </div>
-        <div class="preview-col">
-          <span class="preview-label">Preview</span>
-          <div class="shirt-wrap">
-            <img class="shirt-img" src="" data-mirror="main-shirt" alt="Shirt preview" />
-            <div class="crop-indicator" data-mirror-crop></div>
-            <img class="art-overlay" data-mirror-art alt="" />
-          </div>
-        </div>
-        <div class="nav-row">
-          <button class="btn btn-back" onclick="prevStep()">← Back</button>
-          <button class="btn btn-next" id="next-1" onclick="nextStep()" disabled>
-            Next: Pick a color →
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 2: Color -->
-      <div class="panel" id="panel-2">
-        <div class="controls">
-          <p class="section-label">Pick your color</p>
-          <div class="color-row" id="color-row">
-            <button class="color-swatch" style="background:#f2e8cc" title="Cream" data-color="cream" data-hex="#f2e8cc" onclick="pickColor(this)"></button>
-            <button class="color-swatch" style="background:#055034" title="Forest Green" data-color="forest" data-hex="#055034" onclick="pickColor(this)"></button>
-            <button class="color-swatch" style="background:#111111" title="Black" data-color="black" data-hex="#111111" onclick="pickColor(this)"></button>
-            <button class="color-swatch" style="background:#e87c1e" title="Orange" data-color="orange" data-hex="#e87c1e" onclick="pickColor(this)"></button>
-            <button class="color-swatch" style="background:#7a1c20" title="Burgundy" data-color="burgundy" data-hex="#7a1c20" onclick="pickColor(this)"></button>
-          </div>
-          <div class="color-name" id="color-label">Select a color above</div>
-        </div>
-        <div class="preview-col">
-          <span class="preview-label">Preview</span>
-          <div class="shirt-wrap">
-            <img class="shirt-img" src="" data-mirror="main-shirt" alt="Shirt preview" />
-            <div class="crop-indicator" data-mirror-crop></div>
-            <img class="art-overlay" data-mirror-art alt="" />
-          </div>
-        </div>
-        <div class="nav-row">
-          <button class="btn btn-back" onclick="prevStep()">← Back</button>
-          <button class="btn btn-next" id="next-2" onclick="nextStep()" disabled>
-            Next: Crop it up →
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 3: Crop -->
-      <div class="panel" id="panel-3">
-        <div class="controls">
-          <p class="section-label">Crop it up!</p>
-          <button class="opt-btn" data-group="crop" data-val="none" onclick="pick(this); setCrop('none')">
-            No Cropping <span class="opt-btn-sub">Full length · classic cut</span>
-          </button>
-          <button class="opt-btn" data-group="crop" data-val="cropped" onclick="pick(this); setCrop('cropped')">
-            Cropped <span class="opt-btn-sub">Hits just above the waist</span>
-          </button>
-          <button class="opt-btn" data-group="crop" data-val="xcropped" onclick="pick(this); setCrop('xcropped')">
-            Extra Cropped <span class="opt-btn-sub">Bold short silhouette</span>
-          </button>
-        </div>
-        <div class="preview-col">
-          <span class="preview-label">Preview</span>
-          <div class="shirt-wrap">
-            <img class="shirt-img" src="" data-mirror="main-shirt" alt="Shirt preview" />
-            <div class="crop-indicator" data-mirror-crop></div>
-            <img class="art-overlay" data-mirror-art alt="" />
-          </div>
-        </div>
-        <div class="nav-row">
-          <button class="btn btn-back" onclick="prevStep()">← Back</button>
-          <button class="btn btn-next" id="next-3" onclick="nextStep()" disabled>
-            Next: Make it yours →
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 4: Your Art -->
-      <div class="panel" id="panel-4">
-        <div class="controls" style="flex:1; min-width:100%;">
-          <p class="section-label">Make it yours!</p>
-
-          <!-- Tools -->
-          <div class="art-tools">
-            <label class="art-upload-btn">
-              Upload Image
-              <input type="file" id="art-file-input" accept="image/*" onchange="handleArtUpload(this.files[0])" />
-            </label>
-            <button onclick="deleteArt()" class="danger">🗑 Remove Design</button>
-            <button onclick="resetArtPosition()">⟲ Reset Position</button>
-            <span style="font-size:12px; color:var(--text-muted); margin-left:auto;">
-              Drag · Scale · Rotate
-            </span>
-          </div>
-
-          <!-- 2D + 3D workspace -->
-          <div class="art-workspace">
-            <div class="art-canvas-container">
-              <canvas id="fabric-canvas" width="500" height="600"></canvas>
-            </div>
-            <div class="art-3d-container">
-              <div id="three-container"></div>
-            </div>
-          </div>
+      <!-- ThreadForge editor (ported inline from github.com/zyadhajaji/threadforge) -->
+      <div class="tf-editor">
+        <div class="tf-head">
+          <h2>ThreadForge Mockup Studio</h2>
+          <p class="tf-sub">Pick a garment, drop in your artwork and text, arrange the layers, then export your mockup.</p>
         </div>
 
-        <div class="nav-row" style="width:100%;">
-          <button class="btn btn-back" onclick="prevStep()">← Back</button>
-          <button class="btn btn-next" id="next-4" onclick="nextStep()" disabled>
-            Next: Finishing touches →
-          </button>
-        </div>
-      </div>
+        <!-- Garment template picker -->
+        <div class="tf-templates" id="tf-templates" role="tablist" aria-label="Garment templates"></div>
 
-      <!-- Step 5: Finish -->
-      <div class="panel" id="panel-5">
-        <div class="controls" style="flex:1">
-          <p class="section-label">Finishing touches</p>
-          <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:5px">
-            Name your design
+        <!-- Toolbar -->
+        <div class="tf-toolbar" role="toolbar" aria-label="Editor tools">
+          <button type="button" class="tf-tool" id="tf-add-text" title="Add text">
+            <i class="ti ti-typography" aria-hidden="true"></i><span>Text</span>
+          </button>
+          <label class="tf-tool" title="Add image">
+            <i class="ti ti-photo-plus" aria-hidden="true"></i><span>Image</span>
+            <input type="file" id="tf-add-image" accept="image/*" hidden />
           </label>
-          <input class="name-input" type="text" id="design-name" placeholder="e.g. Summer Drop v1" oninput="checkName()" />
-          <p class="section-label" style="margin-top:1rem">Your choices</p>
-          <div class="summary-grid" id="summary-grid"></div>
-          <div class="success-banner" id="success-banner">
-            <span style="font-size:18px">✓</span>
-            <p id="success-msg"></p>
-          </div>
-        </div>
-        <div class="preview-col">
-          <span class="preview-label">Final look</span>
-          <div class="shirt-wrap">
-            <img class="shirt-img" src="" data-mirror="main-shirt" alt="Shirt preview" />
-            <div class="crop-indicator" data-mirror-crop></div>
-            <img class="art-overlay" data-mirror-art alt="" />
-          </div>
-        </div>
-        <div class="nav-row">
-          <button class="btn btn-back" onclick="prevStep()">← Back</button>
-          <button class="btn btn-next" id="save-btn" onclick="saveDesign()" disabled>
-            Save to projects
+
+          <span class="tf-sep" aria-hidden="true"></span>
+
+          <button type="button" class="tf-tool" id="tf-forward" title="Bring layer forward">
+            <i class="ti ti-arrow-up" aria-hidden="true"></i><span>Forward</span>
+          </button>
+          <button type="button" class="tf-tool" id="tf-backward" title="Send layer backward">
+            <i class="ti ti-arrow-down" aria-hidden="true"></i><span>Backward</span>
+          </button>
+
+          <span class="tf-sep" aria-hidden="true"></span>
+
+          <label class="tf-color-field" title="Text color">
+            Text color
+            <input type="color" id="tf-text-color" value="#111111" />
+          </label>
+
+          <button type="button" class="tf-tool tf-danger" id="tf-delete" title="Delete selected">
+            <i class="ti ti-trash" aria-hidden="true"></i><span>Delete</span>
+          </button>
+
+          <button type="button" class="tf-tool tf-primary" id="tf-export" title="Export as PNG">
+            <i class="ti ti-download" aria-hidden="true"></i><span>Export</span>
           </button>
         </div>
+
+        <!-- Canvas stage -->
+        <div class="tf-stage">
+          <canvas id="tf-canvas" width="700" height="700"></canvas>
+        </div>
+
+        <p class="tf-hint">Drag to move · corner handles to scale &amp; rotate · double-click text to edit · Delete key removes the selected layer.</p>
+
+        <!-- Finish -->
+        <div class="tf-finish">
+          <input class="tf-name" type="text" id="tf-design-name" placeholder="Name your design — e.g. Summer Drop v1" />
+          <button type="button" class="tf-tool tf-primary" id="tf-save">Save to projects</button>
+        </div>
+        <div class="tf-banner" id="tf-banner" hidden></div>
       </div>
     </div>
     <!-- === END CREATOR === -->
@@ -743,611 +663,221 @@
   <!-- ============================================================ -->
   <!-- ===== SCRIPTS ===== -->
   <script>
-    // ========== STATE ==========
-    const S = {
-      step: 0,
-      fit: null,
-      material: null,
-      color: null,
-      colorHex: null,
-      colorName: null,
-      crop: null,
-      artSrc: null,
-    };
+    /* ===== ThreadForge Mockup Studio =====
+       Ported inline from github.com/zyadhajaji/threadforge (a Next.js + Fabric.js
+       mockup platform). This is a self-contained vanilla-JS port of its editor
+       (garment template + canvas + toolbar), using the Fabric.js already loaded
+       in <head>. */
+    (function () {
+      const CANVAS_SIZE = 700;
 
-    // ========== PATH BUILDER ==========
-    const colorSuffixMap = {
-      cream: 'Canvas',
-      forest: 'forest',
-      black: 'night',
-      orange: 'orange',
-      burgundy: 'wine'
-    };
-
-    function capitalise(str) {
-      if (!str) return '';
-      return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
-    function getShirtPath() {
-      const fit = S.fit || 'boxy';
-      const material = S.material || 'cotton';
-      const color = S.color || 'forest';
-      const fitFolder = fit.toLowerCase();
-      const materialFolder = material.toLowerCase();
-      const colorSuffix = colorSuffixMap[color] || 'forest';
-      let fitPrefix = capitalise(fitFolder);
-      if (color === 'orange') {
-        fitPrefix = fitPrefix.charAt(0).toLowerCase() + fitPrefix.slice(1);
-      }
-      const materialPrefix = capitalise(material);
-      const fileName = `${fitPrefix}${materialPrefix}${colorSuffix}.png`;
-      return `assets/shirticons/${fitFolder}/${materialFolder}/${fileName}`;
-    }
-
-    // ========== SYNC ==========
-    function syncShirt() {
-      const src = getShirtPath();
-      document.querySelectorAll('.shirt-img').forEach(img => {
-        img.onerror = function() {
-          this.onerror = null;
-          this.src = 'assets/shirticons/boxy/cotton/BoxyCottonCanvas.png';
-        };
-        img.src = src;
-      });
-    }
-
-    function syncCrop() {
-      document.querySelectorAll('.crop-indicator').forEach(line => {
-        if (!S.crop || S.crop === 'none') {
-          line.style.display = 'none';
-        } else {
-          line.style.display = 'block';
-          line.style.top = S.crop === 'cropped' ? '72%' : '58%';
-        }
-      });
-      if (window.updateThreeCrop) window.updateThreeCrop(S.crop);
-    }
-
-    function syncAll() {
-      syncShirt();
-      syncCrop();
-    }
-
-    // ========== PICK ==========
-    function pick(btn) {
-      const g = btn.dataset.group;
-      document.querySelectorAll(`[data-group="${g}"]`).forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      S[g] = btn.dataset.val;
-      if (g === 'crop' || g === 'material' || g === 'fit') {
-        syncAll();
-      } else {
-        syncShirt();
-      }
-      checkNext();
-    }
-
-    function pickColor(btn) {
-      document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      S.color = btn.dataset.color;
-      S.colorHex = btn.dataset.hex;
-      S.colorName = btn.title;
-      document.getElementById('color-label').textContent = btn.title;
-      syncShirt();
-      document.getElementById('next-2').disabled = false;
-    }
-
-    function setCrop(val) {
-      S.crop = val;
-      syncCrop();
-      checkNext();
-    }
-
-    // ========== NAVIGATION ==========
-    function checkNext() {
-      const maps = { 0: 'fit', 1: 'material', 3: 'crop' };
-      const stepId = S.step;
-      const btn = document.getElementById(`next-${stepId}`);
-      if (!btn) return;
-      if (stepId === 4) {
-        btn.disabled = !(window.fabricCanvas && window.fabricCanvas.getObjects().length > 1);
-        return;
-      }
-      if (stepId === 2) { btn.disabled = !S.color; return; }
-      if (maps[stepId]) btn.disabled = !S[maps[stepId]];
-    }
-
-    function nextStep() {
-      const old = S.step;
-      if (old >= 5) return;
-      document.querySelectorAll('.step-tab')[old].classList.remove('active');
-      document.querySelectorAll('.step-tab')[old].classList.add('done');
-      document.getElementById(`panel-${old}`).classList.remove('active');
-      S.step++;
-      document.querySelectorAll('.step-tab')[S.step].classList.add('active');
-      document.getElementById(`panel-${S.step}`).classList.add('active');
-      if (S.step === 5) buildSummary();
-      if (S.step === 4) {
-        setTimeout(initArtEditor, 150);
-      }
-    }
-
-    function prevStep() {
-      const old = S.step;
-      if (old <= 0) return;
-      document.querySelectorAll('.step-tab')[old].classList.remove('active');
-      document.getElementById(`panel-${old}`).classList.remove('active');
-      S.step--;
-      document.querySelectorAll('.step-tab')[S.step].classList.remove('done');
-      document.querySelectorAll('.step-tab')[S.step].classList.add('active');
-      document.getElementById(`panel-${S.step}`).classList.add('active');
-    }
-
-    // ========== SUMMARY & SAVE ==========
-    function buildSummary() {
-      const labels = {
-        fit: { boxy: 'Boxy Cropped', casual: 'Casual', sporty: 'Sporty' },
-        material: { cotton: 'Cotton', hemp: 'Hemp', wool: 'Merino Wool' },
-        crop: { none: 'No cropping', cropped: 'Cropped', xcropped: 'Extra Cropped' },
-      };
-      const rows = [
-        { k: 'fit', label: 'Fit' },
-        { k: 'material', label: 'Material' },
-        { k: 'color', label: 'Color', color: true },
-        { k: 'crop', label: 'Crop' },
+      const TEMPLATES = [
+        { id: 'boxy-forest', name: 'Boxy · Forest', url: 'assets/shirticons/boxy/cotton/BoxyCottonforest.png' },
+        { id: 'boxy-cream', name: 'Boxy · Cream', url: 'assets/shirticons/boxy/cotton/BoxyCottonCanvas.png' },
+        { id: 'boxy-black', name: 'Boxy · Black', url: 'assets/shirticons/boxy/cotton/BoxyCottonnight.png' },
+        { id: 'casual-forest', name: 'Casual · Forest', url: 'assets/shirticons/casual/cotton/CasualCottonForest.png' },
+        { id: 'casual-cream', name: 'Casual · Cream', url: 'assets/shirticons/casual/cotton/CasualCottonCanvas.png' },
+        { id: 'casual-black', name: 'Casual · Black', url: 'assets/shirticons/casual/cotton/CasualCottonNight.png' },
       ];
-      document.getElementById('summary-grid').innerHTML = rows.map(r => {
-        let val;
-        if (r.color) {
-          val =
-            `<span class="swatch-dot" style="background:${S.colorHex || '#ccc'}"></span>${S.colorName || '—'}`;
-        } else {
-          val = (labels[r.k] && S[r.k]) ? labels[r.k][S[r.k]] : (S[r.k] || '—');
-        }
-        return `<div class="summary-card"><div class="sk">${r.label}</div><div class="sv">${val}</div></div>`;
-      }).join('');
-    }
 
-    function checkName() {
-      document.getElementById('save-btn').disabled = document.getElementById('design-name').value.trim().length < 2;
-    }
+      let canvas = null;
+      let baseImage = null;
+      let currentTemplate = TEMPLATES[0];
 
-    function saveDesign() {
-      const name = document.getElementById('design-name').value.trim();
-      const banner = document.getElementById('success-banner');
-      document.getElementById('success-msg').textContent =
-        `"${name}" saved to your projects and ready to select for print.`;
-      banner.classList.add('show');
-      const btn = document.getElementById('save-btn');
-      btn.textContent = 'Saved ✓';
-      btn.disabled = true;
-      console.log('Design saved:', { name, ...S });
-    }
+      function $(id) { return document.getElementById(id); }
 
-    // ================================================================
-    // ===== ART EDITOR with SHIRT-SHAPED 3D GEOMETRY =====
-    // ================================================================
-
-    let fabricCanvas = null;
-    let threeScene = null;
-    let threeTexture = null;
-    let threeShirt = null;
-    let threeCropLine = null;
-    let threeRenderer = null;
-    let threeCamera = null;
-    let threeControls = null;
-    let isArtEditorReady = false;
-
-    function createShirtGeometry() {
-      // Create a t-shirt shape using THREE.Shape
-      const shape = new THREE.Shape();
-      const w = 1.8; // width scale
-      const h = 2.3; // height scale
-
-      // Start at top center (neckline)
-      shape.moveTo(0, 0.92 * h);
-      // Neckline left dip
-      shape.bezierCurveTo(-0.12 * w, 0.92 * h, -0.18 * w, 0.78 * h, -0.28 * w, 0.72 * h);
-      // Left shoulder
-      shape.lineTo(-0.52 * w, 0.62 * h);
-      // Left sleeve
-      shape.lineTo(-0.78 * w, 0.50 * h);
-      shape.lineTo(-0.68 * w, 0.35 * h);
-      // Left body (slightly tapered)
-      shape.lineTo(-0.48 * w, 0.35 * h);
-      shape.lineTo(-0.48 * w, 0.15 * h);
-      // Bottom curve
-      shape.bezierCurveTo(-0.48 * w, -0.08 * h, -0.22 * w, -0.12 * h, 0, -0.12 * h);
-      shape.bezierCurveTo(0.22 * w, -0.12 * h, 0.48 * w, -0.08 * h, 0.48 * w, 0.15 * h);
-      // Right body
-      shape.lineTo(0.48 * w, 0.35 * h);
-      shape.lineTo(0.68 * w, 0.35 * h);
-      // Right sleeve
-      shape.lineTo(0.78 * w, 0.50 * h);
-      shape.lineTo(0.52 * w, 0.62 * h);
-      // Right shoulder
-      shape.lineTo(0.28 * w, 0.72 * h);
-      // Neckline right dip
-      shape.bezierCurveTo(0.18 * w, 0.78 * h, 0.12 * w, 0.92 * h, 0, 0.92 * h);
-      shape.closePath();
-
-      return shape;
-    }
-
-    function initArtEditor() {
-      if (isArtEditorReady) return;
-      const container = document.getElementById('three-container');
-      if (!container) {
-        console.warn('Three container not found');
-        return;
-      }
-      if (container.clientWidth === 0 || container.clientHeight === 0) {
-        console.warn('Three container has zero size, retrying...');
-        setTimeout(initArtEditor, 200);
-        return;
-      }
-
-      // --- Fabric.js 2D canvas ---
-      const canvasEl = document.getElementById('fabric-canvas');
-      fabricCanvas = new fabric.Canvas(canvasEl, {
-        width: 500,
-        height: 600,
-        backgroundColor: '#f9fafb',
-        selection: false,
-      });
-
-      // Draw a shirt outline guide on the 2D canvas
-      const shirtGuide = new fabric.Rect({
-        left: 60,
-        top: 40,
-        width: 380,
-        height: 520,
-        fill: 'transparent',
-        stroke: '#ccc',
-        strokeWidth: 1,
-        strokeDashArray: [4, 4],
-        selectable: false,
-        evented: false,
-      });
-      fabricCanvas.add(shirtGuide);
-
-      // Hint text
-      const hint = new fabric.Text('Upload an image\nto get started', {
-        left: 250,
-        top: 300,
-        fontSize: 20,
-        fill: '#aaa',
-        textAlign: 'center',
-        originX: 'center',
-        originY: 'center',
-        selectable: false,
-        evented: false,
-      });
-      fabricCanvas.add(hint);
-      fabricCanvas.renderAll();
-
-      // --- Three.js 3D preview with shirt shape ---
-      const width = container.clientWidth || 300;
-      const height = container.clientHeight || 450;
-
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xf3f4f6);
-
-      const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 100);
-      camera.position.set(0, 1.2, 7.5);
-      camera.lookAt(0, 0.1, 0);
-
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.2;
-      container.appendChild(renderer.domElement);
-
-      // Controls
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.autoRotate = false;
-      controls.minDistance = 3;
-      controls.maxDistance = 15;
-      controls.target.set(0, 0.1, 0);
-      controls.update();
-
-      // Lights
-      const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-      scene.add(ambient);
-
-      const key = new THREE.DirectionalLight(0xffeedd, 1.6);
-      key.position.set(4, 6, 5);
-      key.castShadow = true;
-      key.shadow.mapSize.width = 512;
-      key.shadow.mapSize.height = 512;
-      scene.add(key);
-
-      const fill = new THREE.DirectionalLight(0xccddff, 0.5);
-      fill.position.set(-3, 2, -2);
-      scene.add(fill);
-
-      const rim = new THREE.DirectionalLight(0xffffff, 0.3);
-      rim.position.set(0, -3, 6);
-      scene.add(rim);
-
-      // Ground shadow
-      const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(8, 8),
-        new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.08, transparent: true })
-      );
-      ground.rotation.x = -Math.PI / 2;
-      ground.position.y = -2.5;
-      ground.receiveShadow = true;
-      scene.add(ground);
-
-      // ----- SHIRT-SHAPED GEOMETRY -----
-      const shirtShape = createShirtGeometry();
-
-      // Create geometry from shape
-      const geometry = new THREE.ShapeGeometry(shirtShape);
-
-      // Add some subtle 3D curvature by modifying vertices
-      const positions = geometry.attributes.position;
-      const centerX = 0;
-      const centerY = 0;
-      for (let i = 0; i < positions.count; i++) {
-        const x = positions.getX(i);
-        const y = positions.getY(i);
-        // Add slight Z curvature based on distance from center
-        const dist = Math.sqrt(x * x + y * y);
-        const zCurve = -0.08 * (1 - Math.exp(-dist * 0.6));
-        positions.setZ(i, zCurve);
-      }
-      positions.needsUpdate = true;
-      geometry.computeVertexNormals();
-
-      // Texture from Fabric canvas
-      const texture = new THREE.CanvasTexture(canvasEl);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = 4;
-
-      const material = new THREE.MeshStandardMaterial({
-        map: texture,
-        roughness: 0.6,
-        metalness: 0.02,
-        side: THREE.DoubleSide,
-        shadowSide: THREE.DoubleSide,
-      });
-
-      const shirt = new THREE.Mesh(geometry, material);
-      shirt.castShadow = true;
-      shirt.receiveShadow = true;
-      shirt.position.y = 0.1;
-      shirt.rotation.x = -0.03;
-      shirt.rotation.z = 0.02;
-      scene.add(shirt);
-
-      // Crop line in 3D (positioned on shirt surface)
-      const cropPoints = [
-        new THREE.Vector3(-1.4, 1.0, 0.0),
-        new THREE.Vector3(1.4, 1.0, 0.0)
-      ];
-      const cropGeo = new THREE.BufferGeometry().setFromPoints(cropPoints);
-      const cropMat = new THREE.LineBasicMaterial({
-        color: 0xffcc33,
-        transparent: true,
-        opacity: 0.9,
-        linewidth: 2,
-      });
-      const cropLine = new THREE.Line(cropGeo, cropMat);
-      cropLine.visible = false;
-      scene.add(cropLine);
-
-      // Store references
-      threeScene = scene;
-      threeTexture = texture;
-      threeShirt = shirt;
-      threeCropLine = cropLine;
-      threeRenderer = renderer;
-      threeCamera = camera;
-      threeControls = controls;
-
-      // Resize
-      function resize() {
-        const w = container.clientWidth;
-        const h = container.clientHeight;
-        if (w === 0 || h === 0) return;
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-      }
-      window.addEventListener('resize', resize);
-      const ro = new ResizeObserver(resize);
-      ro.observe(container);
-
-      // Animation
-      function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-      }
-      animate();
-
-      // Expose update functions
-      window.updateThreeTexture = function() {
-        texture.image = canvasEl;
-        texture.needsUpdate = true;
-      };
-
-      window.updateThreeCrop = function(cropVal) {
-        if (!threeCropLine) return;
-        if (!cropVal || cropVal === 'none') {
-          threeCropLine.visible = false;
-        } else {
-          threeCropLine.visible = true;
-          // Position on shirt: cropped = lower, xcropped = higher
-          const yPos = cropVal === 'cropped' ? 0.25 : -0.35;
-          threeCropLine.position.y = yPos;
-        }
-      };
-
-      // Initial crop sync
-      window.updateThreeCrop(S.crop);
-
-      // ---- Fabric event listeners ----
-      fabricCanvas.on('object:modified', function() {
-        window.updateThreeTexture();
-        const nextBtn = document.getElementById('next-4');
-        if (nextBtn) nextBtn.disabled = false;
-      });
-
-      fabricCanvas.on('object:added', function() {
-        const hintObj = fabricCanvas.getObjects().find(o =>
-          o.type === 'text' && o.text === 'Upload an image\nto get started'
-        );
-        if (hintObj) fabricCanvas.remove(hintObj);
-        window.updateThreeTexture();
-        const nextBtn = document.getElementById('next-4');
-        if (nextBtn) nextBtn.disabled = false;
-      });
-
-      fabricCanvas.on('object:removed', function() {
-        window.updateThreeTexture();
-        const nextBtn = document.getElementById('next-4');
-        if (nextBtn) nextBtn.disabled = (fabricCanvas.getObjects().length <= 1);
-      });
-
-      // Restore previously uploaded art
-      if (S.artSrc) {
-        fabric.Image.fromURL(S.artSrc, function(img) {
-          img.scaleToWidth(200);
+      function loadTemplate(t) {
+        if (!canvas) return;
+        currentTemplate = t;
+        if (baseImage) { canvas.remove(baseImage); baseImage = null; }
+        fabric.Image.fromURL(t.url, function (img) {
+          const scale = Math.min(CANVAS_SIZE / img.width, CANVAS_SIZE / img.height) * 0.92;
           img.set({
-            left: 150,
-            top: 200,
-            angle: 0,
+            selectable: false,
+            evented: false,
+            originX: 'center',
+            originY: 'center',
+            left: CANVAS_SIZE / 2,
+            top: CANVAS_SIZE / 2,
+            scaleX: scale,
+            scaleY: scale,
           });
-          fabricCanvas.add(img);
-          fabricCanvas.setActiveObject(img);
-          fabricCanvas.renderAll();
-          window.updateThreeTexture();
-          const nextBtn = document.getElementById('next-4');
-          if (nextBtn) nextBtn.disabled = false;
+          baseImage = img;
+          canvas.add(img);
+          canvas.sendToBack(img);
+          canvas.renderAll();
+        }, { crossOrigin: 'anonymous' });
+      }
+
+      function renderTemplatePicker() {
+        const wrap = $('tf-templates');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        TEMPLATES.forEach(function (t) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'tf-template' + (t.id === currentTemplate.id ? ' active' : '');
+          btn.setAttribute('role', 'tab');
+          btn.setAttribute('aria-selected', t.id === currentTemplate.id ? 'true' : 'false');
+          const im = document.createElement('img');
+          im.src = t.url;
+          im.alt = t.name;
+          const label = document.createElement('span');
+          label.textContent = t.name;
+          btn.appendChild(im);
+          btn.appendChild(label);
+          btn.addEventListener('click', function () {
+            document.querySelectorAll('.tf-template').forEach(function (b) {
+              const on = b === btn;
+              b.classList.toggle('active', on);
+              b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            loadTemplate(t);
+          });
+          wrap.appendChild(btn);
         });
       }
 
-      isArtEditorReady = true;
-      window.fabricCanvas = fabricCanvas;
-      console.log('Art editor initialized with shirt geometry');
-      window.updateThreeTexture();
-      setTimeout(resize, 100);
-    }
-
-    // ===== ART TOOLS =====
-
-    function handleArtUpload(file) {
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        S.artSrc = e.target.result;
-        if (fabricCanvas) {
-          fabric.Image.fromURL(S.artSrc, function(img) {
-            img.scaleToWidth(200);
-            img.set({
-              left: 150,
-              top: 200,
-              angle: 0,
-            });
-            fabricCanvas.add(img);
-            fabricCanvas.setActiveObject(img);
-            fabricCanvas.renderAll();
-            window.updateThreeTexture();
-            const nextBtn = document.getElementById('next-4');
-            if (nextBtn) nextBtn.disabled = false;
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function deleteArt() {
-      if (!fabricCanvas) return;
-      const objects = fabricCanvas.getObjects();
-      const toRemove = objects.filter(o => o.type !== 'rect' && o.type !== 'text');
-      toRemove.forEach(o => fabricCanvas.remove(o));
-      fabricCanvas.renderAll();
-      window.updateThreeTexture();
-      const nextBtn = document.getElementById('next-4');
-      if (nextBtn) nextBtn.disabled = true;
-      const hasHint = fabricCanvas.getObjects().some(o =>
-        o.type === 'text' && o.text === 'Upload an image\nto get started'
-      );
-      if (!hasHint && fabricCanvas.getObjects().length <= 1) {
-        const hint = new fabric.Text('Upload an image\nto get started', {
-          left: 250,
-          top: 300,
-          fontSize: 20,
-          fill: '#aaa',
-          textAlign: 'center',
+      function addText() {
+        const t = new fabric.IText('Your Text', {
+          left: CANVAS_SIZE / 2,
+          top: CANVAS_SIZE / 2,
           originX: 'center',
           originY: 'center',
-          selectable: false,
-          evented: false,
+          fontSize: 48,
+          fontFamily: 'Arial',
+          fill: ($('tf-text-color') && $('tf-text-color').value) || '#111111',
         });
-        fabricCanvas.add(hint);
+        canvas.add(t);
+        canvas.setActiveObject(t);
+        canvas.renderAll();
       }
-    }
 
-    function resetArtPosition() {
-      if (!fabricCanvas) return;
-      const active = fabricCanvas.getActiveObject();
-      if (active) {
-        active.set({
-          left: 150,
-          top: 200,
-          angle: 0,
-          scaleX: 1,
-          scaleY: 1,
+      function addImageFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          fabric.Image.fromURL(e.target.result, function (img) {
+            img.scaleToWidth(220);
+            img.set({ left: CANVAS_SIZE / 2, top: CANVAS_SIZE / 2, originX: 'center', originY: 'center' });
+            canvas.add(img);
+            canvas.setActiveObject(img);
+            canvas.renderAll();
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function deleteSelected() {
+        const active = canvas.getActiveObjects();
+        active.forEach(function (o) { if (o !== baseImage) canvas.remove(o); });
+        canvas.discardActiveObject();
+        canvas.renderAll();
+      }
+
+      function bringForward() {
+        const o = canvas.getActiveObject();
+        if (o && o !== baseImage) { canvas.bringForward(o); canvas.renderAll(); }
+      }
+
+      function sendBackward() {
+        const o = canvas.getActiveObject();
+        if (o && o !== baseImage) {
+          canvas.sendBackwards(o);
+          if (baseImage) canvas.sendToBack(baseImage);
+          canvas.renderAll();
+        }
+      }
+
+      function applyTextColor(val) {
+        const o = canvas.getActiveObject();
+        if (o && (o.type === 'i-text' || o.type === 'text' || o.type === 'textbox')) {
+          o.set('fill', val);
+          canvas.renderAll();
+        }
+      }
+
+      function showBanner(message, tone) {
+        const banner = $('tf-banner');
+        if (!banner) return;
+        banner.hidden = false;
+        banner.className = 'tf-banner ' + (tone || 'ok');
+        banner.textContent = message;
+      }
+
+      function exportPng() {
+        canvas.discardActiveObject();
+        canvas.renderAll();
+        let dataUrl;
+        try {
+          dataUrl = canvas.toDataURL({ format: 'png', multiplier: 2 });
+        } catch (err) {
+          showBanner('Export blocked: the garment image could not be read for download.', 'warn');
+          return;
+        }
+        const raw = ($('tf-design-name') && $('tf-design-name').value.trim()) || 'threadforge-mockup';
+        const name = raw.replace(/[^a-z0-9-_]+/gi, '-').replace(/^-+|-+$/g, '') || 'threadforge-mockup';
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = name + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      function saveDesign() {
+        const name = ($('tf-design-name') && $('tf-design-name').value.trim()) || '';
+        if (name.length < 2) {
+          showBanner('Give your design a name (at least 2 characters) before saving.', 'warn');
+          return;
+        }
+        showBanner('"' + name + '" saved to your projects and ready to select for print.', 'ok');
+        console.log('ThreadForge design saved:', { name: name, template: currentTemplate.id });
+      }
+
+      function wire() {
+        $('tf-add-text').addEventListener('click', addText);
+        $('tf-add-image').addEventListener('change', function (e) {
+          addImageFile(e.target.files[0]);
+          e.target.value = '';
         });
-        fabricCanvas.renderAll();
-        window.updateThreeTexture();
+        $('tf-forward').addEventListener('click', bringForward);
+        $('tf-backward').addEventListener('click', sendBackward);
+        $('tf-delete').addEventListener('click', deleteSelected);
+        $('tf-export').addEventListener('click', exportPng);
+        $('tf-save').addEventListener('click', saveDesign);
+        $('tf-text-color').addEventListener('input', function (e) { applyTextColor(e.target.value); });
+        document.addEventListener('keydown', function (e) {
+          if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+          const tag = (document.activeElement && document.activeElement.tagName) || '';
+          if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+          const active = canvas && canvas.getActiveObject();
+          if (active && !active.isEditing) { e.preventDefault(); deleteSelected(); }
+        });
       }
-    }
 
-    // ===== INIT =====
-    window.addEventListener('load', function() {
-      S.fit = 'boxy';
-      S.material = 'cotton';
-      S.color = 'forest';
-      S.crop = 'none';
-      S.colorName = 'Forest Green';
-      S.colorHex = '#055034';
-      document.getElementById('color-label').textContent = 'Forest Green';
-      document.querySelector('[data-group="fit"][data-val="boxy"]')?.classList.add('selected');
-      document.querySelector('[data-group="material"][data-val="cotton"]')?.classList.add('selected');
-      document.querySelector('[data-group="crop"][data-val="none"]')?.classList.add('selected');
-      syncAll();
-      document.getElementById('next-0').disabled = false;
-    });
+      function init() {
+        const el = $('tf-canvas');
+        if (!el || typeof fabric === 'undefined') return;
+        canvas = new fabric.Canvas(el, {
+          width: CANVAS_SIZE,
+          height: CANVAS_SIZE,
+          backgroundColor: '#ffffff',
+          preserveObjectStacking: true,
+        });
+        window.tfCanvas = canvas;
+        renderTemplatePicker();
+        loadTemplate(currentTemplate);
+        wire();
+        console.log('🧵 ThreadForge mockup studio ready.');
+      }
 
-    // Expose globals
-    window.pick = pick;
-    window.pickColor = pickColor;
-    window.setCrop = setCrop;
-    window.nextStep = nextStep;
-    window.prevStep = prevStep;
-    window.handleArtUpload = handleArtUpload;
-    window.deleteArt = deleteArt;
-    window.resetArtPosition = resetArtPosition;
-    window.checkName = checkName;
-    window.saveDesign = saveDesign;
-    window.buildSummary = buildSummary;
-    window.initArtEditor = initArtEditor;
-    window.fabricCanvas = fabricCanvas;
-    window.updateThreeTexture = function() {};
-
-    console.log('🌱 Tee-Minus creator loaded with shirt-shaped 3D preview.');
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
   </script>
   <script src="nav-auth.js"></script>
 </body>
