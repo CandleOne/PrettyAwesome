@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>GoStick - CSGOSKINS Sticker Scraper</title>
+    <meta name="description" content="Automated web scraper for CS:GO stickers with background removal and Cloudinary uploads">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="../" class="nav-home">← Portfolio</a>
+            <h1 class="nav-title">GoStick</h1>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>GoStick</h1>
+        <p class="tagline">CSGOSKINS Sticker Scraper</p>
+        <p class="subtitle">Automated web scraping, background removal, and cloud asset management</p>
+    </div>
+
+    <main class="content">
+        <section>
+            <h2>Project Overview</h2>
+            <p>
+                GoStick is an intelligent web scraper for <strong>CSGOSKINS.GG</strong> that automates the process of discovering, downloading, and processing CS:GO stickers with HD quality. The system removes backgrounds, manages metadata, and integrates with Cloudinary for asset delivery.
+            </p>
+        </section>
+
+        <section>
+            <h2>Key Features</h2>
+            <ul>
+                <li><strong>Smart Pagination:</strong> Scrape 233 pages of sticker listings with configurable rate limiting</li>
+                <li><strong>HD Screenshot Capture:</strong> Download inspection images at maximum quality from detail pages</li>
+                <li><strong>Background Removal:</strong> Automated blue background removal using image processing</li>
+                <li><strong>Cloudflare Handling:</strong> Bypass Cloudflare protection using verified Chrome sessions</li>
+                <li><strong>Asynchronous Pipeline:</strong> Queue-based processing with up to 8 concurrent operations</li>
+                <li><strong>Persistent Metadata:</strong> JSON manifest tracks URLs, categories, processing status, and Cloudinary references</li>
+                <li><strong>Cloudinary Integration:</strong> Direct upload with stable public IDs and delivery URL tracking</li>
+                <li><strong>Resumable Sessions:</strong> Chrome profile persistence allows graceful resume on interruption</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Technical Stack</h2>
+            <ul>
+                <li><strong>Language:</strong> Python with async/await</li>
+                <li><strong>Browser Automation:</strong> Playwright with Chrome DevTools Protocol (CDP)</li>
+                <li><strong>Image Processing:</strong> Background removal in worker threads</li>
+                <li><strong>Cloud Storage:</strong> Cloudinary API integration</li>
+                <li><strong>Rate Limiting:</strong> Configurable request throttling (6-10 requests/minute)</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Smart Features</h2>
+            
+            <div class="feature-box">
+                <h3>Cloudflare Bypass</h3>
+                <p>Uses a verified Chrome window with persistent profile to pass security checks, avoiding repeated verification loops.</p>
+            </div>
+
+            <div class="feature-box">
+                <h3>Adaptive Rate Limiting</h3>
+                <p>Respects site rate limits while providing jittered delays and extended cooldowns after security challenges (up to 3 minutes).</p>
+            </div>
+
+            <div class="feature-box">
+                <h3>Streaming Processing</h3>
+                <p>Downloads and processes images in the background while the scraper continues navigating, using a bounded queue to prevent memory overrun.</p>
+            </div>
+
+            <div class="feature-box">
+                <h3>Atomic Updates</h3>
+                <p>Manifest is updated atomically after each sticker completes, ensuring data integrity across interruptions.</p>
+            </div>
+        </section>
+
+        <section>
+            <h2>Architecture Highlights</h2>
+            <p>
+                The system uses a producer-consumer pattern where the scraper continuously produces sticker URLs while a processing coroutine consumes them, downloading, transforming, and uploading in parallel. The pipeline buffer caps memory at ~8 items, automatically throttling discovery if processing falls behind.
+            </p>
+        </section>
+
+        <section>
+            <h2>Configuration Options</h2>
+            <table class="config-table">
+                <tr>
+                    <td><code>--start-page / --end-page</code></td>
+                    <td>Range of sticker pages to process</td>
+                </tr>
+                <tr>
+                    <td><code>--output</code></td>
+                    <td>Output directory for stickers and manifest</td>
+                </tr>
+                <tr>
+                    <td><code>--cdp-url</code></td>
+                    <td>Chrome DevTools Protocol endpoint (localhost:9222)</td>
+                </tr>
+                <tr>
+                    <td><code>--requests-per-minute</code></td>
+                    <td>Rate limit (default: 10, recommended: 6)</td>
+                </tr>
+                <tr>
+                    <td><code>--request-jitter</code></td>
+                    <td>Random delay variance in seconds (default: 1.5)</td>
+                </tr>
+                <tr>
+                    <td><code>--challenge-cooldown</code></td>
+                    <td>Wait time after Cloudflare check (default: 120)</td>
+                </tr>
+                <tr>
+                    <td><code>--pipeline-buffer</code></td>
+                    <td>Max concurrent downloads (default: 8)</td>
+                </tr>
+                <tr>
+                    <td><code>--upload-cloudinary</code></td>
+                    <td>Upload directly during scraping</td>
+                </tr>
+                <tr>
+                    <td><code>--cloudinary-folder</code></td>
+                    <td>Organization path in Cloudinary</td>
+                </tr>
+            </table>
+        </section>
+
+        <section>
+            <h2>Setup & Execution</h2>
+            <pre><code># Initialize Python environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m playwright install chromium
+
+# Start verified Chrome session (complete Cloudflare check manually)
+.\open_verified_chrome.ps1
+
+# Single page test
+python scrape_stickers.py --start-page 233 --end-page 233 --output output --cdp-url http://127.0.0.1:9222
+
+# Full scrape with conservative rate limiting
+python scrape_stickers.py --start-page 1 --end-page 233 --output output \
+  --cdp-url http://127.0.0.1:9222 \
+  --requests-per-minute 6 \
+  --request-jitter 2 \
+  --challenge-cooldown 180
+
+# Upload existing stickers to Cloudinary
+python scrape_stickers.py --output output --upload-existing \
+  --cloudinary-folder gostick.gg/stickers</code></pre>
+        </section>
+
+        <section>
+            <h2>Status & Output</h2>
+            <p>
+                The scraper generates <code>output/stickers.json</code> containing full metadata for each processed item: inspection URLs, category references, transparent PNG paths, Cloudinary delivery URLs, image dimensions, and processing timestamps.
+            </p>
+        </section>
+
+        <section>
+            <h2>Security Notes</h2>
+            <ul>
+                <li>Cloudinary credentials are stored locally in <code>.env</code> (excluded from git)</li>
+                <li>Chrome profile is retained for cookie reuse across sessions</li>
+                <li>Never commit secrets; always use environment variables</li>
+                <li>Rate limiting is intentionally conservative to avoid verification loops</li>
+            </ul>
+        </section>
+
+        <footer>
+            <p><a href="../">← Return to Portfolio</a></p>
+        </footer>
+    </main>
+
+    <script src="" async defer></script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f9f9f9;
+}
+
+/* Navigation */
+.navbar {
+    background-color: white;
+    border-bottom: 2px solid #000;
+    padding: 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-home {
+    color: black;
+    text-decoration: none;
+    font-size: 18px;
+    padding: 8px;
+    border: 2px solid black;
+}
+
+.nav-home:hover {
+    background-color: yellow;
+    cursor: pointer;
+}
+
+.nav-title {
+    font-size: 24px;
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* Hero Section */
+.hero {
+    background-color: white;
+    padding: 60px 20px;
+    text-align: center;
+    border-bottom: 2px solid #000;
+}
+
+.hero h1 {
+    font-size: 4rem;
+    font-style: italic;
+    margin-bottom: 10px;
+}
+
+.hero .tagline {
+    font-size: 24px;
+    font-style: italic;
+    margin-bottom: 10px;
+}
+
+.hero .subtitle {
+    font-size: 18px;
+    color: #666;
+}
+
+/* Main Content */
+.content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+section {
+    margin-bottom: 40px;
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+h2 {
+    font-size: 28px;
+    margin-bottom: 15px;
+    font-style: italic;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+}
+
+h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+p {
+    font-size: 18px;
+    margin-bottom: 12px;
+    line-height: 1.8;
+}
+
+ul, ol {
+    margin-left: 30px;
+    margin-bottom: 12px;
+}
+
+li {
+    font-size: 18px;
+    margin-bottom: 10px;
+    line-height: 1.8;
+}
+
+/* Feature Boxes */
+.feature-box {
+    background-color: #f5f5f5;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-left: 4px solid #000;
+    border-radius: 4px;
+}
+
+.feature-box h3 {
+    margin-top: 0;
+}
+
+/* Code and Configuration */
+code {
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 16px;
+}
+
+pre {
+    background-color: #f0f0f0;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    border-left: 4px solid #000;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+/* Configuration Table */
+.config-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.config-table tr {
+    border-bottom: 1px solid #ddd;
+}
+
+.config-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.config-table td {
+    padding: 12px;
+    text-align: left;
+}
+
+.config-table td:first-child {
+    font-weight: bold;
+    width: 35%;
+}
+
+.config-table code {
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+}
+
+/* Links */
+a {
+    color: black;
+    text-decoration: none;
+    border-bottom: 2px solid black;
+}
+
+a:hover {
+    background-color: yellow;
+    cursor: pointer;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    border-top: 2px solid #000;
+    margin-top: 40px;
+}
+
+footer a {
+    font-size: 18px;
+    display: inline-block;
+    padding: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+
+    .nav-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .content {
+        padding: 20px 15px;
+    }
+
+    section {
+        padding: 15px;
+    }
+
+    h2 {
+        font-size: 22px;
+    }
+
+    p, li, code {
+        font-size: 16px;
+    }
+}
