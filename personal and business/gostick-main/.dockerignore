@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.venv
+.DS_Store
+output
+output-test
+output-page1-test
+.chrome-scraper-profile
+.pm2
+dev.db
+*.mov
+dorkmugs
+*.blend
+*.blend1
