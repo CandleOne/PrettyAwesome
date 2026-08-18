@@ -4,9 +4,38 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>GoStick.gg | CS2 Sticker Shop</title>
-<meta http-equiv="refresh" content="0; url=https://gostick-gg.fly.dev/" />
-<link rel="canonical" href="https://gostick-gg.fly.dev/" />
-<script>window.location.replace('https://gostick-gg.fly.dev/');</script>
+<meta name="description" content="Shop original Counter-Strike 2 sticker designs at GoStick.gg. Browse featured and latest premium CS2 stickers with secure checkout." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://gostick.club/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="GoStick.gg" />
+<meta property="og:title" content="GoStick.gg | CS2 Sticker Shop" />
+<meta property="og:description" content="Original Counter-Strike 2 sticker designs, featured collections, and secure checkout." />
+<meta property="og:url" content="https://gostick.club/" />
+<meta property="og:image" content="https://res.cloudinary.com/ddzvojsgj/image/upload/gostick.gg/stickers/sticker-titan-holo-katowice-2014.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="GoStick.gg | CS2 Sticker Shop" />
+<meta name="twitter:description" content="Original Counter-Strike 2 sticker designs, featured collections, and secure checkout." />
+<meta name="twitter:image" content="https://res.cloudinary.com/ddzvojsgj/image/upload/gostick.gg/stickers/sticker-titan-holo-katowice-2014.png" />
+<script>
+  if (window.location.hostname === 'prettyawesome.lol') {
+    window.location.replace('https://gostick.club/');
+  }
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "GoStick.gg",
+  "url": "https://gostick.club/",
+  "description": "Original Counter-Strike 2 sticker designs and secure online checkout.",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://gostick.club/search.html?search={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
 <script src="./include/prodbs.js"></script>
 <link href="style.css" rel="stylesheet" type="text/css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" />
@@ -46,8 +75,13 @@
     <a href="product.html" class="cta-btn">Browse All Stickers</a>
   </section>
 
+  <div class="content featured-section" id="featured-section" hidden><h2>Featured Stickers</h2></div>
+  <section class="products sticker-grid" id="featured-grid" hidden>
+    <div class="catalog-state">Loading featured stickers...</div>
+  </section>
+
   <div class="content"><h2>Latest Stickers</h2></div>
-  <section class="products sticker-grid" id="featured-grid">
+  <section class="products sticker-grid" id="latest-grid">
     <div class="catalog-state">Loading latest stickers...</div>
   </section>
 
@@ -72,12 +106,33 @@
 <script src="./include/auth.js"></script>
 <script>
   var featuredGrid = document.getElementById('featured-grid');
+  var latestGrid = document.getElementById('latest-grid');
+  var featuredSection = document.getElementById('featured-section');
   GoStickCatalog.bindCart(featuredGrid);
-  productsReady.then(function(products) {
-    featuredGrid.innerHTML = products.slice(0, 8).map(function(product) {
+  GoStickCatalog.bindCart(latestGrid);
+  Promise.all([
+    productsReady,
+    fetch('/api/products/featured').then(function(response) {
+      if (!response.ok) throw new Error('Featured sticker request failed.');
+      return response.json();
+    })
+  ]).then(function(results) {
+    var products = results[0];
+    var featured = results[1].products || [];
+    var featuredIds = new Set(featured.map(function(product) { return product.id; }));
+    if (featured.length) {
+      featuredSection.hidden = false;
+      featuredGrid.hidden = false;
+      featuredGrid.innerHTML = featured.map(function(product) {
+        return GoStickCatalog.productCard(product, true);
+      }).join('');
+    }
+    latestGrid.innerHTML = products.filter(function(product) {
+      return !featuredIds.has(product.id);
+    }).slice(0, 8).map(function(product) {
       return GoStickCatalog.productCard(product, true);
     }).join('');
-  }).catch(function(error) { GoStickCatalog.showError(featuredGrid, error); });
+  }).catch(function(error) { GoStickCatalog.showError(latestGrid, error); });
 </script>
 </body>
 </html>

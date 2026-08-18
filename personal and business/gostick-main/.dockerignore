@@ -3,6 +3,7 @@ npm-debug.log
 .git
 .gitignore
 .env
+server/.env
 .venv
 .DS_Store
 output

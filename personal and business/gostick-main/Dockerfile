@@ -13,6 +13,9 @@ COPY . .
 FROM node:18-alpine
 WORKDIR /app
 
+# Prisma on Alpine needs OpenSSL runtime libraries
+RUN apk add --no-cache openssl
+
 # Copy backend from builder
 COPY --from=backend-builder /app/server/node_modules ./server/node_modules
 COPY server ./server
@@ -28,12 +31,14 @@ COPY *.png ./
 COPY *.mov ./
 COPY *.jpg ./
 COPY *.js ./
+COPY robots.txt sitemap.xml ./
 
 # Set working directory for server
 WORKDIR /app/server
 
+# Ensure Prisma is generated for the Linux runtime and the SQLite database is migrated
+# before the app starts.
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && node src/server.js"]
+
 # Expose port
 EXPOSE 5000
-
-# Start the backend server
-CMD ["node", "src/server.js"]
