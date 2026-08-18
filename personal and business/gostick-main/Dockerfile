@@ -13,9 +13,6 @@ COPY . .
 FROM node:18-alpine
 WORKDIR /app
 
-# Install dumb-init to handle signals properly
-RUN apk add --no-cache dumb-init
-
 # Copy backend from builder
 COPY --from=backend-builder /app/server/node_modules ./server/node_modules
 COPY server ./server
@@ -35,11 +32,8 @@ COPY *.js ./
 # Set working directory for server
 WORKDIR /app/server
 
-# Expose port (Fly.io will assign 8080)
+# Expose port
 EXPOSE 5000
-
-# Use dumb-init to handle signals
-ENTRYPOINT ["/sbin/dumb-init", "--"]
 
 # Start the backend server
 CMD ["node", "src/server.js"]
